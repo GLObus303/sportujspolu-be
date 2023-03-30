@@ -14,7 +14,8 @@ import (
 	"github.com/jub0bs/fcors"
 )
 
-func getHandlers(db *sql.DB) *gin.Engine {
+func startGin(db *sql.DB) {
+
 	cors, err := fcors.AllowAccess(
 		fcors.FromOrigins("http://localhost:3000"),
 		fcors.WithMethods(
@@ -41,7 +42,15 @@ func getHandlers(db *sql.DB) *gin.Engine {
 	router.PUT("/events/:eventId", eventsService.UpdateEvent)
 	router.DELETE("/events/:eventId", eventsService.DeleteEvent)
 
-	return router
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3031"
+	}
+	if err := router.Run(":" + port); err != nil {
+		log.Panicf("error: %s", err)
+	}
+
+	fmt.Println("Server is running on port " + port)
 }
 
 func main() {
@@ -57,7 +66,6 @@ func main() {
 
 	defer db.Close()
 
-	router := getHandlers(db)
+	startGin(db)
 
-	router.Run(":3001")
 }
