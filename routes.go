@@ -17,7 +17,7 @@ import (
 func startGin(db *sql.DB) {
 
 	cors, err := fcors.AllowAccess(
-		fcors.FromOrigins("http://localhost:3000"),
+		fcors.FromOrigins("http://localhost:3000", "https://sportujspolu-git-get-api-globus303.vercel.app"),
 		fcors.WithMethods(
 			http.MethodGet,
 			http.MethodPost,
@@ -44,7 +44,7 @@ func startGin(db *sql.DB) {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3031"
+		port = "3001"
 	}
 	if err := router.Run(":" + port); err != nil {
 		log.Panicf("error: %s", err)
