@@ -6,18 +6,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globus303/sportujspolu/pkg/events"
 	adapter "github.com/gwatts/gin-adapter"
 	"github.com/joho/godotenv"
 	"github.com/jub0bs/fcors"
+	"github.com/jub0bs/fcors/risky"
 )
 
 func startGin(db *sql.DB) {
+	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 
 	cors, err := fcors.AllowAccess(
-		fcors.FromOrigins("http://localhost:3000", "https://sportujspolu-git-get-api-globus303.vercel.app"),
+		fcors.FromOrigins(allowedOrigins[0], allowedOrigins[1:]...),
 		fcors.WithMethods(
 			http.MethodGet,
 			http.MethodPost,
@@ -25,6 +28,7 @@ func startGin(db *sql.DB) {
 			http.MethodDelete,
 		),
 		fcors.WithRequestHeaders("Authorization"),
+		risky.SkipPublicSuffixCheck(),
 	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
