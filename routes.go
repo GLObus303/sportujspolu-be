@@ -46,6 +46,10 @@ func startGin(db *sql.DB) {
 	router.PUT("/events/:eventId", eventsService.UpdateEvent)
 	router.DELETE("/events/:eventId", eventsService.DeleteEvent)
 
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
