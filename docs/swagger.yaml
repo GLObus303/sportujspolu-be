@@ -1,0 +1,156 @@
+basePath: /api/v1
+definitions:
+  events.Event:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      sport:
+        type: string
+    type: object
+host: sportujspolu-api.onrender.com
+info:
+  contact: {}
+  description: This is the API for the SportujSpolu app.
+  title: SportujSpolu API
+  version: "1.0"
+paths:
+  /events:
+    get:
+      description: Retrieve all events from the database
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: "#/definitions/events.Event"
+            type: array
+      summary: Get all events
+      tags:
+        - events
+    post:
+      consumes:
+        - application/json
+      description: Creates a new event in the database
+      parameters:
+        - description: Event object
+          in: body
+          name: newEvent
+          required: true
+          schema:
+            $ref: "#/definitions/events.Event"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/events.Event"
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Create a new event
+      tags:
+        - events
+  /events/{eventId}:
+    delete:
+      description: Delete an existing event with the given event ID
+      parameters:
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          type: integer
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Delete an event
+      tags:
+        - events
+    get:
+      description: Retrieves a single event from the database
+      parameters:
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          type: integer
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/events.Event"
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get a single event
+      tags:
+        - events
+    put:
+      consumes:
+        - application/json
+      description: Update an existing event with the given event ID
+      parameters:
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          type: integer
+        - description: Event object that needs to be updated
+          in: body
+          name: event
+          required: true
+          schema:
+            $ref: "#/definitions/events.Event"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Update an event
+      tags:
+        - events
+swagger: "2.0"

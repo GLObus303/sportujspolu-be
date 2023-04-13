@@ -40,13 +40,22 @@ func startGin(db *sql.DB) {
 
 	eventsService := events.NewEventsService(db)
 
-	router.GET("/events", eventsService.GetEvents)
-	router.GET("/events/:eventId", eventsService.GetSingleEvent)
-	router.POST("/events", eventsService.CreateEvent)
-	router.PUT("/events/:eventId", eventsService.UpdateEvent)
-	router.DELETE("/events/:eventId", eventsService.DeleteEvent)
+	v1 := router.Group("/api/v1")
 
-	router.GET("/health", func(c *gin.Context) {
+	events := v1.Group("/events")
+	events.GET("", eventsService.GetEvents)
+	events.GET("/:eventId", eventsService.GetSingleEvent)
+	events.POST("", eventsService.CreateEvent)
+	events.PUT("/:eventId", eventsService.UpdateEvent)
+	events.DELETE("/:eventId", eventsService.DeleteEvent)
+
+	//	@Summary Health check
+	//	@Description Returns the status of the server.
+	//	@Tags	health
+	//	@Success 200
+	//	@Failure 500 "Internal Server Error"
+	//	@Router	/health [get]
+	v1.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
@@ -61,6 +70,11 @@ func startGin(db *sql.DB) {
 	fmt.Println("Server is running on port " + port)
 }
 
+// @title SportujSpolu API
+// @description	This is the API for the SportujSpolu app.
+// @version 1.0
+// @host sportujspolu-api.onrender.com
+// @BasePath /api/v1
 func main() {
 	err := godotenv.Load()
 	if err != nil {

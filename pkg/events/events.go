@@ -25,9 +25,15 @@ func NewEventsService(db *sql.DB) *Service {
 	return &Service{db}
 }
 
-func (service *Service) GetEvents(c *gin.Context) {
+// @Summary Get all events
+// @Description Retrieve all events from the database
+// @Tags events
+// @Produce json
+// @Success 200 {array} Event
+// @Router /events [get]
+func (s *Service) GetEvents(c *gin.Context) {
 	query := "SELECT * FROM events"
-	res, err := service.db.Query(query)
+	res, err := s.db.Query(query)
 
 	defer res.Close()
 
@@ -48,7 +54,17 @@ func (service *Service) GetEvents(c *gin.Context) {
 	c.JSON(http.StatusOK, events)
 }
 
-func (service *Service) GetSingleEvent(c *gin.Context) {
+// @Summary Get a single event
+// @Description Retrieves a single event from the database
+// @Tags events
+// @Produce json
+// @Param eventId path int true "Event ID"
+// @Success 200 {object} Event
+// @Failure 400 {object} string
+// @Failure 404 {object} string
+// @Failure 500 {object} string
+// @Router /events/{eventId} [get]
+func (s *Service) GetSingleEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 	eventId = strings.ReplaceAll(eventId, "/", "")
 	eventIdInt, err := strconv.Atoi(eventId)
@@ -58,7 +74,7 @@ func (service *Service) GetSingleEvent(c *gin.Context) {
 
 	var event Event
 	query := `SELECT * FROM events WHERE id = ?`
-	err = service.db.QueryRow(query, eventIdInt).Scan(&event.Id, &event.Name, &event.Sport)
+	err = s.db.QueryRow(query, eventIdInt).Scan(&event.Id, &event.Name, &event.Sport)
 	if err != nil {
 		log.Fatal("(GetSingleEvent) db.Exec", err)
 	}
@@ -66,7 +82,17 @@ func (service *Service) GetSingleEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, event)
 }
 
-func (service *Service) CreateEvent(c *gin.Context) {
+// @Summary Create a new event
+// @Description Creates a new event in the database
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param newEvent body Event true "Event object"
+// @Success 200 {object} Event
+// @Failure 400 {object} string
+// @Failure 500 {object} string
+// @Router /events [post]
+func (s *Service) CreateEvent(c *gin.Context) {
 	var newEvent Event
 	err := c.BindJSON(&newEvent)
 	if err != nil {
@@ -74,7 +100,7 @@ func (service *Service) CreateEvent(c *gin.Context) {
 	}
 
 	query := `INSERT INTO events (name, sport) VALUES (?, ?)`
-	res, err := service.db.Exec(query, newEvent.Name, newEvent.Sport)
+	res, err := s.db.Exec(query, newEvent.Name, newEvent.Sport)
 	if err != nil {
 		log.Fatal("(CreateEvent) db.Exec", err)
 	}
@@ -86,7 +112,19 @@ func (service *Service) CreateEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, newEvent)
 }
 
-func (service *Service) UpdateEvent(c *gin.Context) {
+// @Summary Update an event
+// @Description Update an existing event with the given event ID
+// @Tags events
+// @Accept json
+// @Produce json
+// @Param eventId path int true "Event ID"
+// @Param event body Event true "Event object that needs to be updated"
+// @Success 200
+// @Failure 400 {object} string
+// @Failure 404 {object} string
+// @Failure 500 {object} string
+// @Router /events/{eventId} [put]
+func (s *Service) UpdateEvent(c *gin.Context) {
 	var updates Event
 	err := c.BindJSON(&updates)
 	if err != nil {
@@ -101,7 +139,7 @@ func (service *Service) UpdateEvent(c *gin.Context) {
 	}
 
 	query := `UPDATE events SET name = ?, sport = ? WHERE id = ?`
-	_, err = service.db.Exec(query, updates.Name, updates.Sport, eventIdInt)
+	_, err = s.db.Exec(query, updates.Name, updates.Sport, eventIdInt)
 	if err != nil {
 		log.Fatal("(UpdateEvent) db.Exec", err)
 	}
@@ -109,7 +147,16 @@ func (service *Service) UpdateEvent(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (service *Service) DeleteEvent(c *gin.Context) {
+// @Summary Delete an event
+// @Description Delete an existing event with the given event ID
+// @Tags events
+// @Param eventId path int true "Event ID"
+// @Success 200
+// @Failure 400 {object} string
+// @Failure 404 {object} string
+// @Failure 500 {object} string
+// @Router /events/{eventId} [delete]
+func (s *Service) DeleteEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 
 	eventId = strings.ReplaceAll(eventId, "/", "")
@@ -118,7 +165,7 @@ func (service *Service) DeleteEvent(c *gin.Context) {
 		log.Fatal("(DeleteEvent) strconv.Atoi", err)
 	}
 	query := `DELETE FROM events WHERE id = ?`
-	_, err = service.db.Exec(query, eventIdInt)
+	_, err = s.db.Exec(query, eventIdInt)
 	if err != nil {
 		log.Fatal("(DeleteEvent) db.Exec", err)
 	}
