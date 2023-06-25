@@ -9,14 +9,16 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globus303/sportujspolu/middleware"
 	"github.com/globus303/sportujspolu/pkg/events"
+	"github.com/globus303/sportujspolu/pkg/user"
 	adapter "github.com/gwatts/gin-adapter"
 	"github.com/joho/godotenv"
 	"github.com/jub0bs/fcors"
 	"github.com/jub0bs/fcors/risky"
 )
 
-func startGin(db *sql.DB) {
+func startRouter(db *sql.DB) {
 	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
 
 	cors, err := fcors.AllowAccess(
@@ -37,17 +39,26 @@ func startGin(db *sql.DB) {
 
 	router := gin.Default()
 	router.Use(adapter.Wrap(cors))
+	v1 := router.Group("/api/v1")
+
+	userService := user.NewUserService(db)
+
+	users := v1.Group("/user")
+	users.POST("/register", userService.Register)
+	users.POST("/login", userService.Login)
 
 	eventsService := events.NewEventsService(db)
-
-	v1 := router.Group("/api/v1")
 
 	events := v1.Group("/events")
 	events.GET("", eventsService.GetEvents)
 	events.GET("/:eventId", eventsService.GetSingleEvent)
-	events.POST("", eventsService.CreateEvent)
-	events.PUT("/:eventId", eventsService.UpdateEvent)
-	events.DELETE("/:eventId", eventsService.DeleteEvent)
+
+	protectedEvents := events.Group("")
+	protectedEvents.Use(middleware.JwtAuth())
+
+	protectedEvents.POST("", eventsService.CreateEvent)
+	protectedEvents.PUT("/:eventId", eventsService.UpdateEvent)
+	protectedEvents.DELETE("/:eventId", eventsService.DeleteEvent)
 
 	//	@Summary Health check
 	//	@Description Returns the status of the server.
@@ -88,6 +99,5 @@ func main() {
 
 	defer db.Close()
 
-	startGin(db)
-
+	startRouter(db)
 }
