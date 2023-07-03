@@ -20,55 +20,61 @@ paths:
     get:
       description: Retrieve all events from the database
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
           schema:
             items:
-              $ref: "#/definitions/events.Event"
+              $ref: '#/definitions/events.Event'
             type: array
       summary: Get all events
       tags:
-        - events
+      - events
     post:
       consumes:
-        - application/json
+      - application/json
       description: Creates a new event in the database
       parameters:
-        - description: Event object
-          in: body
-          name: newEvent
-          required: true
-          schema:
-            $ref: "#/definitions/events.Event"
+      - description: Event object
+        in: body
+        name: newEvent
+        required: true
+        schema:
+          $ref: '#/definitions/events.Event'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: "#/definitions/events.Event"
+            $ref: '#/definitions/events.Event'
         "400":
           description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
           schema:
             type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - BearerAuth: []
       summary: Create a new event
       tags:
-        - events
+      - events
   /events/{eventId}:
     delete:
       description: Delete an existing event with the given event ID
       parameters:
-        - description: Event ID
-          in: path
-          name: eventId
-          required: true
-          type: integer
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: integer
       responses:
         "200":
           description: OK
@@ -76,38 +82,36 @@ paths:
           description: Bad Request
           schema:
             type: string
-        "404":
-          description: Not Found
+        "401":
+          description: Unauthorized
           schema:
             type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - BearerAuth: []
       summary: Delete an event
       tags:
-        - events
+      - events
     get:
       description: Retrieves a single event from the database
       parameters:
-        - description: Event ID
-          in: path
-          name: eventId
-          required: true
-          type: integer
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: integer
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: "#/definitions/events.Event"
+            $ref: '#/definitions/events.Event'
         "400":
           description: Bad Request
-          schema:
-            type: string
-        "404":
-          description: Not Found
           schema:
             type: string
         "500":
@@ -116,25 +120,25 @@ paths:
             type: string
       summary: Get a single event
       tags:
-        - events
+      - events
     put:
       consumes:
-        - application/json
+      - application/json
       description: Update an existing event with the given event ID
       parameters:
-        - description: Event ID
-          in: path
-          name: eventId
-          required: true
-          type: integer
-        - description: Event object that needs to be updated
-          in: body
-          name: event
-          required: true
-          schema:
-            $ref: "#/definitions/events.Event"
+      - description: Event ID
+        in: path
+        name: eventId
+        required: true
+        type: integer
+      - description: Event object that needs to be updated
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/events.Event'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: OK
@@ -142,15 +146,17 @@ paths:
           description: Bad Request
           schema:
             type: string
-        "404":
-          description: Not Found
+        "401":
+          description: Unauthorized
           schema:
             type: string
         "500":
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - BearerAuth: []
       summary: Update an event
       tags:
-        - events
+      - events
 swagger: "2.0"
