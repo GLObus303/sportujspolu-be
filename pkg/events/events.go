@@ -6,15 +6,21 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type Event struct {
-	Id    int64  `json:"id"`
-	Name  string `json:"name"`
-	Sport string `json:"sport"`
+	ID          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Sport       string    `json:"sport"`
+	Date        time.Time `json:"date"`
+	Location    string    `json:"location"`
+	Price       float64   `json:"price"`
+	Description string    `json:"description"`
+	Level       string    `json:"level"`
 }
 
 type Service struct {
@@ -32,19 +38,17 @@ func NewEventsService(db *sql.DB) *Service {
 // @Success 200 {array} Event
 // @Router /events [get]
 func (s *Service) GetEvents(c *gin.Context) {
-	query := "SELECT * FROM events"
-	res, err := s.db.Query(query)
-
-	defer res.Close()
-
+	res, err := s.db.Query("SELECT * FROM events")
 	if err != nil {
 		log.Fatal("(GetEvents) db.Query", err)
 	}
 
+	defer res.Close()
+
 	events := []Event{}
 	for res.Next() {
 		var event Event
-		err := res.Scan(&event.Id, &event.Name, &event.Sport)
+		err := res.Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level)
 		if err != nil {
 			log.Fatal("(GetEvents) res.Scan", err)
 		}
@@ -61,7 +65,6 @@ func (s *Service) GetEvents(c *gin.Context) {
 // @Param eventId path int true "Event ID"
 // @Success 200 {object} Event
 // @Failure 400 {object} string
-// @Failure 404 {object} string
 // @Failure 500 {object} string
 // @Router /events/{eventId} [get]
 func (s *Service) GetSingleEvent(c *gin.Context) {
@@ -73,8 +76,7 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 	}
 
 	var event Event
-	query := `SELECT * FROM events WHERE id = ?`
-	err = s.db.QueryRow(query, eventIdInt).Scan(&event.Id, &event.Name, &event.Sport)
+	err = s.db.QueryRow(`SELECT * FROM events WHERE id = ?`, eventIdInt).Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level)
 	if err != nil {
 		log.Fatal("(GetSingleEvent) db.Exec", err)
 	}
@@ -90,7 +92,9 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 // @Param newEvent body Event true "Event object"
 // @Success 200 {object} Event
 // @Failure 400 {object} string
+// @Failure 401 {object} string "Unauthorized"
 // @Failure 500 {object} string
+// @Security BearerAuth
 // @Router /events [post]
 func (s *Service) CreateEvent(c *gin.Context) {
 	var newEvent Event
@@ -104,7 +108,7 @@ func (s *Service) CreateEvent(c *gin.Context) {
 	if err != nil {
 		log.Fatal("(CreateEvent) db.Exec", err)
 	}
-	newEvent.Id, err = res.LastInsertId()
+	newEvent.ID, err = res.LastInsertId()
 	if err != nil {
 		log.Fatal("(CreateEvent) res.LastInsertId", err)
 	}
@@ -121,8 +125,9 @@ func (s *Service) CreateEvent(c *gin.Context) {
 // @Param event body Event true "Event object that needs to be updated"
 // @Success 200
 // @Failure 400 {object} string
-// @Failure 404 {object} string
+// @Failure 401 {object} string "Unauthorized"
 // @Failure 500 {object} string
+// @Security BearerAuth
 // @Router /events/{eventId} [put]
 func (s *Service) UpdateEvent(c *gin.Context) {
 	var updates Event
@@ -153,8 +158,9 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 // @Param eventId path int true "Event ID"
 // @Success 200
 // @Failure 400 {object} string
-// @Failure 404 {object} string
+// @Failure 401 {object} string "Unauthorized"
 // @Failure 500 {object} string
+// @Security BearerAuth
 // @Router /events/{eventId} [delete]
 func (s *Service) DeleteEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
