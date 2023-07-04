@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/globus303/sportujspolu/middleware"
 	"github.com/globus303/sportujspolu/pkg/events"
-	"github.com/globus303/sportujspolu/pkg/user"
 	adapter "github.com/gwatts/gin-adapter"
 	"github.com/joho/godotenv"
 	"github.com/jub0bs/fcors"
@@ -41,11 +40,11 @@ func startRouter(db *sql.DB) {
 	router.Use(adapter.Wrap(cors))
 	v1 := router.Group("/api/v1")
 
-	userService := user.NewUserService(db)
+	// userService := user.NewUserService(db)
 
-	users := v1.Group("/user")
-	users.POST("/register", userService.Register)
-	users.POST("/login", userService.Login)
+	// users := v1.Group("/user")
+	// users.POST("/register", userService.Register)
+	// users.POST("/login", userService.Login)
 
 	eventsService := events.NewEventsService(db)
 
