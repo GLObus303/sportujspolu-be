@@ -2,14 +2,58 @@ basePath: /api/v1
 definitions:
   events.Event:
     properties:
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      level:
+        type: string
+      location:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      sport:
+        type: string
+    type: object
+  user.LoginInput:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  user.RegisterInput:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    type: object
+  user.userResponse:
+    properties:
+      email:
+        type: string
       id:
         type: integer
       name:
         type: string
-      sport:
-        type: string
+      rating:
+        type: integer
     type: object
-host: sportujspolu-api.onrender.com
+host: https://sportujspolu-api.onrender.com
 info:
   contact: {}
   description: This is the API for the SportujSpolu app.
@@ -159,4 +203,81 @@ paths:
       summary: Update an event
       tags:
       - events
+  /user/login:
+    post:
+      consumes:
+      - application/json
+      description: Logs in a user with the provided credentials
+      parameters:
+      - description: Login credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.LoginInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: User login
+      tags:
+      - user
+  /user/me:
+    get:
+      description: Gets the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/user.userResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - user
+  /user/register:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user with the provided details
+      parameters:
+      - description: Registration details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/user.RegisterInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Register a new user
+      tags:
+      - user
+securityDefinitions:
+  ApiKeyAuth:
+    in: query
+    name: token
+    type: apiKey
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

@@ -7,14 +7,17 @@ import (
 	"github.com/globus303/sportujspolu/utils"
 )
 
-type AuthKey string
-
-// const authKey AuthKey = "authentication"
-
 func JwtAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		tokenString := utils.ExtractToken(c)
-		if tokenString != "yourmother" {
+
+		if tokenString == "yourmother" {
+			c.Next()
+			return
+		}
+
+		err := utils.TokenValid(c)
+		if err != nil {
 			c.String(http.StatusUnauthorized, "Unauthorized")
 			c.Abort()
 			return
