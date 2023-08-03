@@ -29,7 +29,7 @@ func startRouter(db *sql.DB) {
 			http.MethodPut,
 			http.MethodDelete,
 		),
-		fcors.WithRequestHeaders("Authorization"),
+		fcors.WithRequestHeaders("Authorization", "Content-Type"),
 		risky.SkipPublicSuffixCheck(),
 	)
 	if err != nil {
