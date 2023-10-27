@@ -3,27 +3,37 @@ definitions:
   events.Event:
     properties:
       date:
+        example: "2023-07-10"
         type: string
       description:
+        example: Example Description
         type: string
       id:
+        example: 24
         type: integer
       level:
+        example: Any
         type: string
       location:
+        example: Central Park
         type: string
       name:
+        example: Basketball Match at Park
         type: string
       price:
+        example: 0
         type: number
       sport:
+        example: Basketball
         type: string
     type: object
   user.LoginInput:
     properties:
       email:
+        example: email@test.com
         type: string
       password:
+        example: Test123
         type: string
     required:
     - email
@@ -32,10 +42,13 @@ definitions:
   user.RegisterInput:
     properties:
       email:
+        example: email@test.com
         type: string
       name:
+        example: John Doe
         type: string
       password:
+        example: Test123
         type: string
     required:
     - email
@@ -45,12 +58,16 @@ definitions:
   user.userResponse:
     properties:
       email:
+        example: email@test.com
         type: string
       id:
+        example: 123
         type: integer
       name:
+        example: John Doe
         type: string
       rating:
+        example: 3
         type: integer
     type: object
 host: https://sportujspolu-api.onrender.com

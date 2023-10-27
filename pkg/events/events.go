@@ -12,23 +12,23 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type Event struct {
-	ID          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Sport       string    `json:"sport"`
-	Date        time.Time `json:"date"`
-	Location    string    `json:"location"`
-	Price       float64   `json:"price"`
-	Description string    `json:"description"`
-	Level       string    `json:"level"`
-}
-
 type Service struct {
 	db *sql.DB
 }
 
 func NewEventsService(db *sql.DB) *Service {
 	return &Service{db}
+}
+
+type Event struct {
+	ID          int64     `json:"id" example:"24"`
+	Name        string    `json:"name" example:"Basketball Match at Park"`
+	Sport       string    `json:"sport" example:"Basketball"`
+	Date        time.Time `json:"date" example:"2023-07-10"`
+	Location    string    `json:"location" example:"Central Park"`
+	Price       float64   `json:"price" example:"0.00"`
+	Description string    `json:"description" example:"Example Description"`
+	Level       string    `json:"level" example:"Any"`
 }
 
 // @Summary Get all events

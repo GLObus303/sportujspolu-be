@@ -12,3 +12,13 @@ To use this project, you need to have Go installed on your machine. Then, you ca
 ## Usage
 
 Once the application is running, you can access the "events" route by navigating to http://localhost:3001/events.
+
+## Swaggo Yaml
+
+To generate swaggo yaml use
+
+```bash
+swag init -g routes.go --ot yaml
+```
+
+It gets generate to docs/swagger.yaml
