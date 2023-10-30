@@ -20,11 +20,6 @@ func NewUserService(db *sql.DB) *Service {
 	return &Service{db}
 }
 
-type LoginInput struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-}
-
 func verifyPassword(password, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
@@ -53,6 +48,11 @@ func loginCheck(email string, password string, s *Service) (string, error) {
 
 	return token, nil
 
+}
+
+type LoginInput struct {
+	Email    string `json:"email" binding:"required" example:"email@test.com"`
+	Password string `json:"password" binding:"required" example:"Test123"`
 }
 
 // @Summary User login
@@ -88,9 +88,9 @@ func (s *Service) Login(c *gin.Context) {
 }
 
 type RegisterInput struct {
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
-	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required" example:"email@test.com"`
+	Password string `json:"password" binding:"required" example:"Test123"`
+	Name     string `json:"name" binding:"required" example:"John Doe"`
 }
 
 // @Summary Register a new user

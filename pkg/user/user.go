@@ -10,10 +10,10 @@ import (
 )
 
 type userResponse struct {
-	ID     int64  `json:"id"`
-	Name   string `json:"name"`
-	Email  string `json:"email"`
-	Rating int    `json:"rating"`
+	ID     int64  `json:"id" example:"123"`
+	Name   string `json:"name" example:"John Doe"`
+	Email  string `json:"email" example:"email@test.com"`
+	Rating int    `json:"rating" example:"3"`
 }
 
 // @Summary Get current user
