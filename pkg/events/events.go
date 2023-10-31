@@ -5,10 +5,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globus303/sportujspolu/models"
+	"github.com/globus303/sportujspolu/utils"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -20,37 +20,47 @@ func NewEventsService(db *sql.DB) *Service {
 	return &Service{db}
 }
 
-type Event struct {
-	ID          int64     `json:"id" example:"24"`
-	Name        string    `json:"name" example:"Basketball Match at Park"`
-	Sport       string    `json:"sport" example:"Basketball"`
-	Date        time.Time `json:"date" example:"2023-07-10"`
-	Location    string    `json:"location" example:"Central Park"`
-	Price       float64   `json:"price" example:"0.00"`
-	Description string    `json:"description" example:"Example Description"`
-	Level       string    `json:"level" example:"Any"`
-}
-
 // @Summary Get all events
 // @Description Retrieve all events from the database
 // @Tags events
 // @Produce json
-// @Success 200 {array} Event
+// @Param page query int false "Page number" default(1)
+// @Param limit query int false "Number of events per page" default(10)
+// @Success 200 {array} models.Event
+// @Failure 400 {object} models.ErrorResponse
 // @Router /events [get]
 func (s *Service) GetEvents(c *gin.Context) {
-	res, err := s.db.Query("SELECT * FROM events")
+	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
+	if err != nil || page < 1 {
+		log.Println("(GetEvents)", err)
+		c.JSON(http.StatusBadRequest, utils.GetError("Invalid page parameter"))
+
+		return
+	}
+
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	if err != nil || limit < 1 {
+		log.Println("(GetEvents)", err)
+		c.JSON(http.StatusBadRequest, utils.GetError("Invalid limit parameter"))
+
+		return
+	}
+
+	offset := (page - 1) * limit
+	res, err := s.db.Query("SELECT * FROM events LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
-		log.Fatal("(GetEvents) db.Query", err)
+		log.Println("(GetEvents) db.Query", err)
 	}
 
 	defer res.Close()
 
-	events := []Event{}
+	events := []models.Event{}
 	for res.Next() {
-		var event Event
-		err := res.Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level)
+		var event models.Event
+		err := res.Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID)
 		if err != nil {
-			log.Fatal("(GetEvents) res.Scan", err)
+			log.Println("(GetEvents) res.Scan", err)
+
 		}
 		events = append(events, event)
 	}
@@ -62,23 +72,23 @@ func (s *Service) GetEvents(c *gin.Context) {
 // @Description Retrieves a single event from the database
 // @Tags events
 // @Produce json
-// @Param eventId path int true "Event ID"
-// @Success 200 {object} Event
-// @Failure 400 {object} string
-// @Failure 500 {object} string
+// @Param eventId path string true "Event ID" example("q76j5d1a3xtn")
+// @Success 200 {object} models.Event
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Router /events/{eventId} [get]
 func (s *Service) GetSingleEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
-	eventId = strings.ReplaceAll(eventId, "/", "")
-	eventIdInt, err := strconv.Atoi(eventId)
-	if err != nil {
-		log.Fatal("(GetSingleEvent) strconv.Atoi", err)
-	}
 
-	var event Event
-	err = s.db.QueryRow(`SELECT * FROM events WHERE id = ?`, eventIdInt).Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level)
+	var event models.Event
+	query := `SELECT * FROM events WHERE public_id = ?`
+	err := s.db.QueryRow(query, eventId).Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID)
 	if err != nil {
-		log.Fatal("(GetSingleEvent) db.Exec", err)
+		log.Println("(GetSingleEvent) db.Exec", err)
+		c.JSON(http.StatusNotFound, utils.GetError("Event not found"))
+
+		return
 	}
 
 	c.JSON(http.StatusOK, event)
@@ -89,28 +99,34 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param newEvent body Event true "Event object"
-// @Success 200 {object} Event
-// @Failure 400 {object} string
-// @Failure 401 {object} string "Unauthorized"
-// @Failure 500 {object} string
+// @Param newEvent body models.Event true "Event object"
+// @Success 200 {object} models.Event
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /events [post]
 func (s *Service) CreateEvent(c *gin.Context) {
-	var newEvent Event
+	var newEvent models.Event
 	err := c.BindJSON(&newEvent)
 	if err != nil {
-		log.Fatal("(CreateEvent) c.BindJSON", err)
+		log.Println("(CreateEvent) c.BindJSON", err)
 	}
 
 	query := `INSERT INTO events (name, sport) VALUES (?, ?)`
 	res, err := s.db.Exec(query, newEvent.Name, newEvent.Sport)
 	if err != nil {
-		log.Fatal("(CreateEvent) db.Exec", err)
+		log.Println("(CreateEvent) db.Exec", err)
+		c.JSON(http.StatusBadRequest, utils.GetError("Error creating event"))
+
+		return
 	}
+
 	newEvent.ID, err = res.LastInsertId()
 	if err != nil {
-		log.Fatal("(CreateEvent) res.LastInsertId", err)
+		log.Println("(CreateEvent) res.LastInsertId", err)
+
+		return
 	}
 
 	c.JSON(http.StatusOK, newEvent)
@@ -122,31 +138,32 @@ func (s *Service) CreateEvent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param eventId path int true "Event ID"
-// @Param event body Event true "Event object that needs to be updated"
-// @Success 200
-// @Failure 400 {object} string
-// @Failure 401 {object} string "Unauthorized"
-// @Failure 500 {object} string
+// @Param event body models.Event true "Event object that needs to be updated"
+// @Success 200 {object} models.Event
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /events/{eventId} [put]
 func (s *Service) UpdateEvent(c *gin.Context) {
-	var updates Event
+	var updates models.Event
 	err := c.BindJSON(&updates)
 	if err != nil {
-		log.Fatal("(UpdateEvent) c.BindJSON", err)
+		log.Println("(UpdateEvent) c.BindJSON", err)
+		c.JSON(http.StatusBadRequest, utils.GetError("Error while parsing request body"))
+
+		return
 	}
 
 	eventId := c.Param("eventId")
-	eventId = strings.ReplaceAll(eventId, "/", "")
-	eventIdInt, err := strconv.Atoi(eventId)
-	if err != nil {
-		log.Fatal("(UpdateEvent) strconv.Atoi", err)
-	}
 
-	query := `UPDATE events SET name = ?, sport = ? WHERE id = ?`
-	_, err = s.db.Exec(query, updates.Name, updates.Sport, eventIdInt)
+	query := `UPDATE events SET name = ?, sport = ? WHERE public_id = ?`
+	_, err = s.db.Exec(query, updates.Name, updates.Sport, eventId)
 	if err != nil {
-		log.Fatal("(UpdateEvent) db.Exec", err)
+		log.Println("(UpdateEvent) db.Exec", err)
+		c.JSON(http.StatusBadRequest, utils.GetError("Error updating event"))
+
+		return
 	}
 
 	c.Status(http.StatusOK)
@@ -156,24 +173,22 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 // @Description Delete an existing event with the given event ID
 // @Tags events
 // @Param eventId path int true "Event ID"
-// @Success 200
-// @Failure 400 {object} string
-// @Failure 401 {object} string "Unauthorized"
-// @Failure 500 {object} string
+// @Success 200 {object} models.Event
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 401 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /events/{eventId} [delete]
 func (s *Service) DeleteEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 
-	eventId = strings.ReplaceAll(eventId, "/", "")
-	eventIdInt, err := strconv.Atoi(eventId)
+	query := `DELETE FROM events WHERE public_id = ?`
+	_, err := s.db.Exec(query, eventId)
 	if err != nil {
-		log.Fatal("(DeleteEvent) strconv.Atoi", err)
-	}
-	query := `DELETE FROM events WHERE id = ?`
-	_, err = s.db.Exec(query, eventIdInt)
-	if err != nil {
-		log.Fatal("(DeleteEvent) db.Exec", err)
+		log.Println("(DeleteEvent) db.Exec", err)
+		c.JSON(http.StatusBadRequest, utils.GetError("Error deleting event"))
+
+		return
 	}
 
 	c.Status(http.StatusOK)

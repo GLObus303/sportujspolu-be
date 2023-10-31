@@ -1,6 +1,11 @@
 basePath: /api/v1
 definitions:
-  events.Event:
+  models.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  models.Event:
     properties:
       date:
         example: "2023-07-10"
@@ -9,8 +14,8 @@ definitions:
         example: Example Description
         type: string
       id:
-        example: 24
-        type: integer
+        example: pwnrxtbi9z0v
+        type: string
       level:
         example: Any
         type: string
@@ -36,8 +41,8 @@ definitions:
         example: Test123
         type: string
     required:
-    - email
-    - password
+      - email
+      - password
     type: object
   user.RegisterInput:
     properties:
@@ -51,9 +56,9 @@ definitions:
         example: Test123
         type: string
     required:
-    - email
-    - name
-    - password
+      - email
+      - name
+      - password
     type: object
   user.userResponse:
     properties:
@@ -70,7 +75,7 @@ definitions:
         example: 3
         type: integer
     type: object
-host: https://sportujspolu-api.onrender.com
+host: sportujspolu-api.onrender.com
 info:
   contact: {}
   description: This is the API for the SportujSpolu app.
@@ -80,160 +85,184 @@ paths:
   /events:
     get:
       description: Retrieve all events from the database
+      parameters:
+        - default: 1
+          description: Page number
+          in: query
+          name: page
+          type: integer
+        - default: 10
+          description: Number of events per page
+          in: query
+          name: limit
+          type: integer
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
           schema:
             items:
-              $ref: '#/definitions/events.Event'
+              $ref: "#/definitions/models.Event"
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: "#/definitions/models.ErrorResponse"
       summary: Get all events
       tags:
-      - events
+        - events
     post:
       consumes:
-      - application/json
+        - application/json
       description: Creates a new event in the database
       parameters:
-      - description: Event object
-        in: body
-        name: newEvent
-        required: true
-        schema:
-          $ref: '#/definitions/events.Event'
+        - description: Event object
+          in: body
+          name: newEvent
+          required: true
+          schema:
+            $ref: "#/definitions/models.Event"
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/events.Event'
+            $ref: "#/definitions/models.Event"
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       summary: Create a new event
       tags:
-      - events
+        - events
   /events/{eventId}:
     delete:
       description: Delete an existing event with the given event ID
       parameters:
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: integer
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          type: integer
       responses:
         "200":
           description: OK
+          schema:
+            $ref: "#/definitions/models.Event"
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       summary: Delete an event
       tags:
-      - events
+        - events
     get:
       description: Retrieves a single event from the database
       parameters:
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: integer
+        - description: Event ID
+          example: '"q76j5d1a3xtn"'
+          in: path
+          name: eventId
+          required: true
+          type: string
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/events.Event'
+            $ref: "#/definitions/models.Event"
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
+        "404":
+          description: Not Found
+          schema:
+            $ref: "#/definitions/models.ErrorResponse"
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
       summary: Get a single event
       tags:
-      - events
+        - events
     put:
       consumes:
-      - application/json
+        - application/json
       description: Update an existing event with the given event ID
       parameters:
-      - description: Event ID
-        in: path
-        name: eventId
-        required: true
-        type: integer
-      - description: Event object that needs to be updated
-        in: body
-        name: event
-        required: true
-        schema:
-          $ref: '#/definitions/events.Event'
+        - description: Event ID
+          in: path
+          name: eventId
+          required: true
+          type: integer
+        - description: Event object that needs to be updated
+          in: body
+          name: event
+          required: true
+          schema:
+            $ref: "#/definitions/models.Event"
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
+          schema:
+            $ref: "#/definitions/models.Event"
         "400":
           description: Bad Request
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
         "401":
           description: Unauthorized
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
         "500":
           description: Internal Server Error
           schema:
-            type: string
+            $ref: "#/definitions/models.ErrorResponse"
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       summary: Update an event
       tags:
-      - events
+        - events
   /user/login:
     post:
       consumes:
-      - application/json
+        - application/json
       description: Logs in a user with the provided credentials
       parameters:
-      - description: Login credentials
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.LoginInput'
+        - description: Login credentials
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: "#/definitions/user.LoginInput"
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
@@ -245,36 +274,36 @@ paths:
             type: string
       summary: User login
       tags:
-      - user
+        - user
   /user/me:
     get:
       description: Gets the current user
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.userResponse'
+            $ref: "#/definitions/user.userResponse"
       security:
-      - BearerAuth: []
+        - BearerAuth: []
       summary: Get current user
       tags:
-      - user
+        - user
   /user/register:
     post:
       consumes:
-      - application/json
+        - application/json
       description: Registers a new user with the provided details
       parameters:
-      - description: Registration details
-        in: body
-        name: input
-        required: true
-        schema:
-          $ref: '#/definitions/user.RegisterInput'
+        - description: Registration details
+          in: body
+          name: input
+          required: true
+          schema:
+            $ref: "#/definitions/user.RegisterInput"
       produces:
-      - application/json
+        - application/json
       responses:
         "200":
           description: OK
@@ -286,12 +315,10 @@ paths:
             type: string
       summary: Register a new user
       tags:
-      - user
+        - user
+schemes:
+  - https
 securityDefinitions:
-  ApiKeyAuth:
-    in: query
-    name: token
-    type: apiKey
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.
     in: header
