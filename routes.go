@@ -88,15 +88,13 @@ func startRouter(db *sql.DB) {
 // @title SportujSpolu API
 // @description	This is the API for the SportujSpolu app.
 // @version 1.0
-// @host https://sportujspolu-api.onrender.com
+// @host sportujspolu-api.onrender.com
+// @schemes https
 // @BasePath /api/v1
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
 // @description Type "Bearer" followed by a space and JWT token.
-// @securityDefinitions.apikey ApiKeyAuth
-// @in query
-// @name token
 func main() {
 	err := godotenv.Load()
 	if err != nil {
