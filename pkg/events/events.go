@@ -5,12 +5,19 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/globus303/sportujspolu/models"
 	"github.com/globus303/sportujspolu/utils"
 	_ "github.com/go-sql-driver/mysql"
 )
+
+const columns = "name, sport, date, location, price, description, level, public_id, created_at"
+
+func getColumnForEvent(event *models.Event) []interface{} {
+	return []interface{}{&event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID, &event.Created_At}
+}
 
 type Service struct {
 	db *sql.DB
@@ -47,7 +54,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 	}
 
 	offset := (page - 1) * limit
-	res, err := s.db.Query("SELECT * FROM events LIMIT ? OFFSET ?", limit, offset)
+	res, err := s.db.Query("SELECT "+columns+" FROM events LIMIT ? OFFSET ?", limit, offset)
 	if err != nil {
 		log.Println("(GetEvents) db.Query", err)
 	}
@@ -57,7 +64,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 	events := []models.Event{}
 	for res.Next() {
 		var event models.Event
-		err := res.Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID)
+		err := res.Scan(getColumnForEvent(&event)...)
 		if err != nil {
 			log.Println("(GetEvents) res.Scan", err)
 
@@ -82,8 +89,8 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 
 	var event models.Event
-	query := `SELECT * FROM events WHERE public_id = ?`
-	err := s.db.QueryRow(query, eventId).Scan(&event.ID, &event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID)
+	query := "SELECT " + columns + " FROM events WHERE public_id = ?"
+	err := s.db.QueryRow(query, eventId).Scan(getColumnForEvent(&event)...)
 	if err != nil {
 		log.Println("(GetSingleEvent) db.Exec", err)
 		c.JSON(http.StatusNotFound, utils.GetError("Event not found"))
@@ -94,12 +101,27 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, event)
 }
 
+type EventInput struct {
+	Name        string    `json:"name" example:"Basketball Match at Park"`
+	Sport       string    `json:"sport" example:"Basketball"`
+	Date        time.Time `json:"date" example:"2023-07-10"`
+	Location    string    `json:"location" example:"Central Park"`
+	Price       uint16    `json:"price" example:"123"`
+	Description string    `json:"description" example:"Example Description"`
+	Level       string    `json:"level" example:"Any"`
+}
+
+type EventCreateInput struct {
+	EventInput
+	Created_At time.Time `json:"createdAt" example:"2023-11-03T10:15:30Z"`
+}
+
 // @Summary Create a new event
 // @Description Creates a new event in the database
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param newEvent body models.Event true "Event object"
+// @Param newEvent body EventCreateInput true "Event object"
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -113,18 +135,27 @@ func (s *Service) CreateEvent(c *gin.Context) {
 		log.Println("(CreateEvent) c.BindJSON", err)
 	}
 
-	query := `INSERT INTO events (name, sport) VALUES (?, ?)`
-	res, err := s.db.Exec(query, newEvent.Name, newEvent.Sport)
+	newEvent.Public_ID = utils.GenerateUUID()
+
+	query := "INSERT INTO events (name, sport, date, location, description, level, public_id, created_at"
+
+	values := []interface{}{newEvent.Name, newEvent.Sport, newEvent.Date, newEvent.Location, newEvent.Description, newEvent.Level, newEvent.Public_ID, newEvent.Created_At}
+
+	if newEvent.Price != 0 {
+		query += ", price"
+		values = append(values, newEvent.Price)
+	}
+
+	query += ") VALUES (?,?,?,?,?,?,?,?"
+	if newEvent.Price != 0 {
+		query += ",?"
+	}
+	query += ")"
+
+	_, err = s.db.Exec(query, values...)
 	if err != nil {
 		log.Println("(CreateEvent) db.Exec", err)
 		c.JSON(http.StatusBadRequest, utils.GetError("Error creating event"))
-
-		return
-	}
-
-	newEvent.ID, err = res.LastInsertId()
-	if err != nil {
-		log.Println("(CreateEvent) res.LastInsertId", err)
 
 		return
 	}
@@ -138,7 +169,7 @@ func (s *Service) CreateEvent(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param eventId path int true "Event ID"
-// @Param event body models.Event true "Event object that needs to be updated"
+// @Param event body EventInput true "Event object that needs to be updated"
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -146,7 +177,7 @@ func (s *Service) CreateEvent(c *gin.Context) {
 // @Security BearerAuth
 // @Router /events/{eventId} [put]
 func (s *Service) UpdateEvent(c *gin.Context) {
-	var updates models.Event
+	var updates EventInput
 	err := c.BindJSON(&updates)
 	if err != nil {
 		log.Println("(UpdateEvent) c.BindJSON", err)
@@ -157,8 +188,18 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 
 	eventId := c.Param("eventId")
 
-	query := `UPDATE events SET name = ?, sport = ? WHERE public_id = ?`
-	_, err = s.db.Exec(query, updates.Name, updates.Sport, eventId)
+	query := "UPDATE events SET name = ?, sport = ?, date = ?, location = ?, description = ?, level = ?"
+	values := []interface{}{updates.Name, updates.Sport, updates.Date, updates.Location, updates.Description, updates.Level}
+
+	if updates.Price != 0 {
+		query += ", price = ?"
+		values = append(values, updates.Price)
+	}
+
+	query += " WHERE public_id = ?"
+	values = append(values, eventId)
+
+	_, err = s.db.Exec(query, values...)
 	if err != nil {
 		log.Println("(UpdateEvent) db.Exec", err)
 		c.JSON(http.StatusBadRequest, utils.GetError("Error updating event"))
