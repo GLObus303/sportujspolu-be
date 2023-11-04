@@ -1,32 +1,5 @@
 basePath: /api/v1
 definitions:
-  events.EventCreateInput:
-    properties:
-      createdAt:
-        example: "2023-11-03T10:15:30Z"
-        type: string
-      date:
-        example: "2023-07-10"
-        type: string
-      description:
-        example: Example Description
-        type: string
-      level:
-        example: Any
-        type: string
-      location:
-        example: Central Park
-        type: string
-      name:
-        example: Basketball Match at Park
-        type: string
-      price:
-        example: 123
-        type: integer
-      sport:
-        example: Basketball
-        type: string
-    type: object
   events.EventInput:
     properties:
       date:
@@ -176,7 +149,7 @@ paths:
         name: newEvent
         required: true
         schema:
-          $ref: '#/definitions/events.EventCreateInput'
+          $ref: '#/definitions/events.EventInput'
       produces:
       - application/json
       responses:

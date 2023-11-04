@@ -111,17 +111,12 @@ type EventInput struct {
 	Level       string    `json:"level" example:"Any"`
 }
 
-type EventCreateInput struct {
-	EventInput
-	Created_At time.Time `json:"createdAt" example:"2023-11-03T10:15:30Z"`
-}
-
 // @Summary Create a new event
 // @Description Creates a new event in the database
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param newEvent body EventCreateInput true "Event object"
+// @Param newEvent body EventInput true "Event object"
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -136,6 +131,7 @@ func (s *Service) CreateEvent(c *gin.Context) {
 	}
 
 	newEvent.Public_ID = utils.GenerateUUID()
+	newEvent.Created_At = time.Now()
 
 	query := "INSERT INTO events (name, sport, date, location, description, level, public_id, created_at"
 
