@@ -32,7 +32,7 @@ func NewEventsService(db *sql.DB) *Service {
 // @Tags events
 // @Produce json
 // @Param page query int false "Page number" default(1)
-// @Param limit query int false "Number of events per page" default(10)
+// @Param limit query int false "Number of events per page" default(12)
 // @Success 200 {array} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Router /events [get]
@@ -45,7 +45,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 		return
 	}
 
-	limit, err := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	limit, err := strconv.Atoi(c.DefaultQuery("limit", "12"))
 	if err != nil || limit < 1 {
 		log.Println("(GetEvents)", err)
 		c.JSON(http.StatusBadRequest, utils.GetError("Invalid limit parameter"))
@@ -79,7 +79,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 // @Description Retrieves a single event from the database
 // @Tags events
 // @Produce json
-// @Param eventId path string true "Event ID" example("q76j5d1a3xtn")
+// @Param eventId path string true "Event ID" example(q76j5d1a3xtn)
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
@@ -104,7 +104,7 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 type EventInput struct {
 	Name        string    `json:"name" example:"Basketball Match at Park"`
 	Sport       string    `json:"sport" example:"Basketball"`
-	Date        time.Time `json:"date" example:"2023-07-10"`
+	Date        time.Time `json:"date" example:"2023-11-03T10:15:30Z"`
 	Location    string    `json:"location" example:"Central Park"`
 	Price       uint16    `json:"price" example:"123"`
 	Description string    `json:"description" example:"Example Description"`
