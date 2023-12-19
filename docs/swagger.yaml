@@ -52,6 +52,9 @@ definitions:
       name:
         example: Basketball Match at Park
         type: string
+      ownerId:
+        example: 123
+        type: integer
       price:
         example: 123
         type: integer
@@ -179,10 +182,11 @@ paths:
       description: Delete an existing event with the given event ID
       parameters:
       - description: Event ID
+        example: q76j5d1a3xtn
         in: path
         name: eventId
         required: true
-        type: integer
+        type: string
       responses:
         "200":
           description: OK
@@ -242,10 +246,11 @@ paths:
       description: Update an existing event with the given event ID
       parameters:
       - description: Event ID
+        example: q76j5d1a3xtn
         in: path
         name: eventId
         required: true
-        type: integer
+        type: string
       - description: Event object that needs to be updated
         in: body
         name: event

@@ -1,12 +1,11 @@
 package user
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globus303/sportujspolu/constants"
 	"github.com/globus303/sportujspolu/models"
-	"github.com/globus303/sportujspolu/utils"
 )
 
 type userResponse struct {
@@ -24,22 +23,15 @@ type userResponse struct {
 // @Success 200 {object} userResponse
 // @Router /user/me [get]
 func (s *Service) GetMe(c *gin.Context) {
-	userID, err := utils.ExtractTokenID(c)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	userID, _ := c.Get(constants.UserID)
 
 	u := models.User{}
 
-	err = s.db.QueryRow(`SELECT ID, Name, Email, Rating FROM users WHERE ID = ?`, userID).Scan(&u.ID, &u.Name, &u.Email, &u.Rating)
+	err := s.db.QueryRow(`SELECT ID, Name, Email, Rating FROM users WHERE ID = ?`, userID).Scan(&u.ID, &u.Name, &u.Email, &u.Rating)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	log.Println(u)
 
 	userResponse := userResponse{
 		ID:     u.ID,
@@ -47,7 +39,6 @@ func (s *Service) GetMe(c *gin.Context) {
 		Email:  u.Email,
 		Rating: u.Rating,
 	}
-	log.Println(userResponse)
 
 	c.JSON(http.StatusOK, userResponse)
 }
