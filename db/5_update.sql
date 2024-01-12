@@ -1,0 +1,1 @@
+ALTER TABLE events ADD owner_id INT UNSIGNED NOT NULL;

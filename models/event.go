@@ -13,4 +13,5 @@ type Event struct {
 	Description string    `json:"description" example:"Example Description"`
 	Level       string    `json:"level" example:"Any"`
 	Created_At  time.Time `json:"createdAt" example:"2023-11-03T10:15:30Z"`
+	Owner_ID    uint16    `json:"ownerId" example:"123"`
 }
