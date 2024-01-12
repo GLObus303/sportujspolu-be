@@ -8,15 +8,16 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/globus303/sportujspolu/constants"
 	"github.com/globus303/sportujspolu/models"
 	"github.com/globus303/sportujspolu/utils"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-const columns = "name, sport, date, location, price, description, level, public_id, created_at"
+const columns = "name, sport, date, location, price, description, level, public_id, created_at, owner_id"
 
 func getColumnForEvent(event *models.Event) []interface{} {
-	return []interface{}{&event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID, &event.Created_At}
+	return []interface{}{&event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID, &event.Created_At, &event.Owner_ID}
 }
 
 type Service struct {
@@ -130,19 +131,22 @@ func (s *Service) CreateEvent(c *gin.Context) {
 		log.Println("(CreateEvent) c.BindJSON", err)
 	}
 
+	userID, _ := c.Get(constants.UserID)
+
+	newEvent.Owner_ID = uint16(userID.(uint))
 	newEvent.Public_ID = utils.GenerateUUID()
 	newEvent.Created_At = time.Now()
 
-	query := "INSERT INTO events (name, sport, date, location, description, level, public_id, created_at"
+	query := "INSERT INTO events (name, sport, date, location, description, level, public_id, created_at, owner_id"
 
-	values := []interface{}{newEvent.Name, newEvent.Sport, newEvent.Date, newEvent.Location, newEvent.Description, newEvent.Level, newEvent.Public_ID, newEvent.Created_At}
+	values := []interface{}{newEvent.Name, newEvent.Sport, newEvent.Date, newEvent.Location, newEvent.Description, newEvent.Level, newEvent.Public_ID, newEvent.Created_At, newEvent.Owner_ID}
 
 	if newEvent.Price != 0 {
 		query += ", price"
 		values = append(values, newEvent.Price)
 	}
 
-	query += ") VALUES (?,?,?,?,?,?,?,?"
+	query += ") VALUES (?,?,?,?,?,?,?,?,?"
 	if newEvent.Price != 0 {
 		query += ",?"
 	}
@@ -159,12 +163,33 @@ func (s *Service) CreateEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, newEvent)
 }
 
+func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) bool {
+	userID, _ := c.Get(constants.UserID)
+
+	var ownerID uint16
+	err := s.db.QueryRow("SELECT owner_id FROM events WHERE public_id = ?", eventId).Scan(&ownerID)
+	if err != nil {
+		log.Println("(UpdateEvent) db.QueryRow", err)
+		c.JSON(http.StatusBadRequest, utils.GetError("Error updating event"))
+
+		return false
+	}
+
+	if ownerID != uint16(userID.(uint)) {
+		c.JSON(http.StatusForbidden, utils.GetError("You are not the owner of this event"))
+
+		return false
+	}
+
+	return true
+}
+
 // @Summary Update an event
 // @Description Update an existing event with the given event ID
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param eventId path int true "Event ID"
+// @Param eventId path string true "Event ID" example(q76j5d1a3xtn)
 // @Param event body EventInput true "Event object that needs to be updated"
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
@@ -184,8 +209,12 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 
 	eventId := c.Param("eventId")
 
-	query := "UPDATE events SET name = ?, sport = ?, date = ?, location = ?, description = ?, level = ?"
-	values := []interface{}{updates.Name, updates.Sport, updates.Date, updates.Location, updates.Description, updates.Level}
+	if !s.validateUserIsOwnerOfEvent(c, eventId) {
+		return
+	}
+
+	query := "UPDATE events SET name = ?, sport = ?, date = ?, location = ?, price = ?, description = ?, level = ?"
+	values := []interface{}{updates.Name, updates.Sport, updates.Date, updates.Location, updates.Price, updates.Description, updates.Level}
 
 	if updates.Price != 0 {
 		query += ", price = ?"
@@ -209,7 +238,7 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 // @Summary Delete an event
 // @Description Delete an existing event with the given event ID
 // @Tags events
-// @Param eventId path int true "Event ID"
+// @Param eventId path string true "Event ID" example(q76j5d1a3xtn)
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -218,6 +247,10 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 // @Router /events/{eventId} [delete]
 func (s *Service) DeleteEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
+
+	if !s.validateUserIsOwnerOfEvent(c, eventId) {
+		return
+	}
 
 	query := `DELETE FROM events WHERE public_id = ?`
 	_, err := s.db.Exec(query, eventId)
