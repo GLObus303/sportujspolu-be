@@ -2,6 +2,7 @@ package events
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -16,7 +17,7 @@ import (
 
 const columns = "name, sport, date, location, price, description, level, public_id, created_at, owner_id"
 
-func getColumnForEvent(event *models.Event) []interface{} {
+func getColumnForEvent(event *models.EventWithOwner) []interface{} {
 	return []interface{}{&event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID, &event.Created_At, &event.Owner_ID}
 }
 
@@ -28,13 +29,39 @@ func NewEventsService(db *sql.DB) *Service {
 	return &Service{db}
 }
 
+func (s *Service) includeOwner(event *models.EventWithOwner, c *gin.Context) error {
+	includes := c.Query("includes")
+	if includes != "owner" {
+		event.Owner = nil
+
+		return nil
+	}
+
+	ownerID := event.Owner_ID
+
+	var owner models.User
+	err := s.db.QueryRow("SELECT name, email, rating FROM users WHERE id = ?", ownerID).
+		Scan(&owner.Name, &owner.Email, &owner.Rating)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(owner)
+
+	event.Owner = &owner
+
+	return nil
+}
+
 // @Summary Get all events
 // @Description Retrieve all events from the database
 // @Tags events
 // @Produce json
 // @Param page query int false "Page number" default(1)
 // @Param limit query int false "Number of events per page" default(12)
-// @Success 200 {array} models.Event
+// @Param includes query string false "Include additional details" Enums(owner)
+// @Success 200 {array} models.EventWithOwner
 // @Failure 400 {object} models.ErrorResponse
 // @Router /events [get]
 func (s *Service) GetEvents(c *gin.Context) {
@@ -62,15 +89,20 @@ func (s *Service) GetEvents(c *gin.Context) {
 
 	defer res.Close()
 
-	events := []models.Event{}
+	events := []models.EventWithOwner{}
 	for res.Next() {
-		var event models.Event
+		var event models.EventWithOwner
 		err := res.Scan(getColumnForEvent(&event)...)
 		if err != nil {
 			log.Println("(GetEvents) res.Scan", err)
-
 		}
 		events = append(events, event)
+	}
+
+	for i := range events {
+		if err := s.includeOwner(&events[i], c); err != nil {
+			log.Println("(GetEvents) includeOwner", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, events)
@@ -81,7 +113,8 @@ func (s *Service) GetEvents(c *gin.Context) {
 // @Tags events
 // @Produce json
 // @Param eventId path string true "Event ID" example(q76j5d1a3xtn)
-// @Success 200 {object} models.Event
+// @Param includes query string false "Include additional details" Enums(owner)
+// @Success 200 {object} models.EventWithOwner
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
@@ -89,7 +122,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 func (s *Service) GetSingleEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 
-	var event models.Event
+	var event models.EventWithOwner
 	query := "SELECT " + columns + " FROM events WHERE public_id = ?"
 	err := s.db.QueryRow(query, eventId).Scan(getColumnForEvent(&event)...)
 	if err != nil {
@@ -97,6 +130,10 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 		c.JSON(http.StatusNotFound, utils.GetError("Event not found"))
 
 		return
+	}
+
+	if err := s.includeOwner(&event, c); err != nil {
+		log.Println("(GetEvents) includeOwner", err)
 	}
 
 	c.JSON(http.StatusOK, event)
