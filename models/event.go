@@ -15,3 +15,8 @@ type Event struct {
 	Created_At  time.Time `json:"createdAt" example:"2023-11-03T10:15:30Z"`
 	Owner_ID    uint16    `json:"ownerId" example:"123"`
 }
+
+type EventWithOwner struct {
+	Event
+	Owner *User `json:"owner,omitempty"`
+}
