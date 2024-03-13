@@ -27,7 +27,7 @@ func (s *Service) GetMe(c *gin.Context) {
 
 	u := models.User{}
 
-	err := s.db.QueryRow(`SELECT ID, Name, Email, Rating FROM users WHERE ID = ?`, userID).Scan(&u.ID, &u.Name, &u.Email, &u.Rating)
+	err := s.db.QueryRow(`SELECT ID, Name, Email, Rating FROM users WHERE ID = $1`, userID).Scan(&u.ID, &u.Name, &u.Email, &u.Rating)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
