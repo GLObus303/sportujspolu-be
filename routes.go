@@ -16,6 +16,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/jub0bs/fcors"
 	"github.com/jub0bs/fcors/risky"
+	_ "github.com/lib/pq"
 )
 
 func startRouter(db *sql.DB) {
@@ -101,12 +102,26 @@ func main() {
 		log.Fatal("failed to load env", err)
 	}
 
-	db, err := sql.Open("mysql", os.Getenv("DSN"))
+	db, err := sql.Open("postgres", os.Getenv("DB_CONNECTION"))
 	if err != nil {
 		log.Fatal("failed to open db connection", err)
 	}
-
 	defer db.Close()
+
+	rows, err := db.Query("select version()")
+	if err != nil {
+		log.Fatal("failed to open db connection", err)
+	}
+	defer rows.Close()
+
+	var version string
+	for rows.Next() {
+		err := rows.Scan(&version)
+		if err != nil {
+			log.Fatal("failed to open db connection", err)
+		}
+	}
+	fmt.Printf("version=%s\n", version)
 
 	startRouter(db)
 }

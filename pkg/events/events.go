@@ -12,7 +12,6 @@ import (
 	"github.com/globus303/sportujspolu/constants"
 	"github.com/globus303/sportujspolu/models"
 	"github.com/globus303/sportujspolu/utils"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 const columns = "name, sport, date, location, price, description, level, public_id, created_at, owner_id"
@@ -82,7 +81,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 	}
 
 	offset := (page - 1) * limit
-	res, err := s.db.Query("SELECT "+columns+" FROM events LIMIT ? OFFSET ?", limit, offset)
+	res, err := s.db.Query("SELECT "+columns+" FROM events LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		log.Println("(GetEvents) db.Query", err)
 	}
@@ -123,7 +122,7 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 
 	var event models.EventWithOwner
-	query := "SELECT " + columns + " FROM events WHERE public_id = ?"
+	query := "SELECT " + columns + " FROM events WHERE public_id = $1"
 	err := s.db.QueryRow(query, eventId).Scan(getColumnForEvent(&event)...)
 	if err != nil {
 		log.Println("(GetSingleEvent) db.Exec", err)
@@ -204,7 +203,7 @@ func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) boo
 	userID, _ := c.Get(constants.UserID)
 
 	var ownerID uint16
-	err := s.db.QueryRow("SELECT owner_id FROM events WHERE public_id = ?", eventId).Scan(&ownerID)
+	err := s.db.QueryRow("SELECT owner_id FROM events WHERE public_id = $1", eventId).Scan(&ownerID)
 	if err != nil {
 		log.Println("(UpdateEvent) db.QueryRow", err)
 		c.JSON(http.StatusBadRequest, utils.GetError("Error updating event"))
@@ -250,7 +249,7 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	query := "UPDATE events SET name = ?, sport = ?, date = ?, location = ?, price = ?, description = ?, level = ?"
+	query := "UPDATE events SET name = $1, sport = $2, date = $3, location = $4, price = $5, description = $6, level = $7 WHERE id = $8"
 	values := []interface{}{updates.Name, updates.Sport, updates.Date, updates.Location, updates.Price, updates.Description, updates.Level}
 
 	if updates.Price != 0 {
@@ -289,7 +288,7 @@ func (s *Service) DeleteEvent(c *gin.Context) {
 		return
 	}
 
-	query := `DELETE FROM events WHERE public_id = ?`
+	query := `DELETE FROM events WHERE public_id = $1`
 	_, err := s.db.Exec(query, eventId)
 	if err != nil {
 		log.Println("(DeleteEvent) db.Exec", err)
