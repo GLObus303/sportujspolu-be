@@ -53,14 +53,64 @@ definitions:
         example: Basketball Match at Park
         type: string
       ownerId:
-        example: 123
-        type: integer
+        example: pwnrxtbi9z0v
+        type: string
       price:
         example: 123
         type: integer
       sport:
         example: Basketball
         type: string
+    type: object
+  models.EventWithOwner:
+    properties:
+      createdAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      date:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      description:
+        example: Example Description
+        type: string
+      id:
+        example: pwnrxtbi9z0v
+        type: string
+      level:
+        example: Any
+        type: string
+      location:
+        example: Central Park
+        type: string
+      name:
+        example: Basketball Match at Park
+        type: string
+      owner:
+        $ref: '#/definitions/models.PublicUser'
+      ownerId:
+        example: pwnrxtbi9z0v
+        type: string
+      price:
+        example: 123
+        type: integer
+      sport:
+        example: Basketball
+        type: string
+    type: object
+  models.PublicUser:
+    properties:
+      email:
+        example: email@test.com
+        type: string
+      id:
+        example: pwnrxtbi9z0v
+        type: string
+      name:
+        example: John Doe
+        type: string
+      rating:
+        example: 3
+        type: integer
     type: object
   user.LoginInput:
     properties:
@@ -90,21 +140,6 @@ definitions:
     - name
     - password
     type: object
-  user.userResponse:
-    properties:
-      email:
-        example: email@test.com
-        type: string
-      id:
-        example: 123
-        type: integer
-      name:
-        example: John Doe
-        type: string
-      rating:
-        example: 3
-        type: integer
-    type: object
 host: sportujspolu-api.onrender.com
 info:
   contact: {}
@@ -126,6 +161,12 @@ paths:
         in: query
         name: limit
         type: integer
+      - description: Include additional details
+        enum:
+        - owner
+        in: query
+        name: includes
+        type: string
       produces:
       - application/json
       responses:
@@ -133,7 +174,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Event'
+              $ref: '#/definitions/models.EventWithOwner'
             type: array
         "400":
           description: Bad Request
@@ -218,13 +259,19 @@ paths:
         name: eventId
         required: true
         type: string
+      - description: Include additional details
+        enum:
+        - owner
+        in: query
+        name: includes
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Event'
+            $ref: '#/definitions/models.EventWithOwner'
         "400":
           description: Bad Request
           schema:
@@ -308,6 +355,20 @@ paths:
       tags:
       - user
   /user/me:
+    delete:
+      description: Deletes the current user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      security:
+      - BearerAuth: []
+      summary: Delete current user
+      tags:
+      - user
     get:
       description: Gets the current user
       produces:
@@ -316,7 +377,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/user.userResponse'
+            $ref: '#/definitions/models.PublicUser'
       security:
       - BearerAuth: []
       summary: Get current user

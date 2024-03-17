@@ -1,3 +1,3 @@
 package constants
 
-const UserID = "userID"
+const UserID_key = "userID"
