@@ -29,7 +29,7 @@ func loginCheck(email string, password string, s *Service) (string, error) {
 
 	u := models.User{}
 
-	err = s.db.QueryRow(`SELECT * FROM users WHERE email = $1`, email).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Rating)
+	err = s.db.QueryRow(`SELECT id, name, email, password, rating FROM users WHERE email = $1`, email).Scan(&u.ID, &u.Name, &u.Email, &u.Password, &u.Rating)
 	if err != nil {
 		return "", err
 	}
@@ -112,6 +112,7 @@ func (s *Service) Register(c *gin.Context) {
 
 	u := models.User{}
 
+	u.ID = utils.GenerateUUID()
 	u.Name = input.Name
 	u.Email = input.Email
 	u.Password = input.Password
@@ -126,8 +127,8 @@ func (s *Service) Register(c *gin.Context) {
 	u.Password = string(hashedPassword)
 	u.Email = html.EscapeString(strings.TrimSpace(u.Email))
 
-	query := `INSERT INTO users (name, email, password, rating) VALUES ($1, $2, $3, 0)`
-	_, err = s.db.Exec(query, u.Name, u.Email, u.Password)
+	query := `INSERT INTO users (id, name, email, password, rating) VALUES ($1, $2, $3, $4, 0)`
+	_, err = s.db.Exec(query, u.ID, u.Name, u.Email, u.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

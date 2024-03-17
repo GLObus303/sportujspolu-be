@@ -11,7 +11,7 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-func GenerateToken(userID int64) (string, error) {
+func GenerateToken(userID string) (string, error) {
 	token_lifespan, err := strconv.Atoi(os.Getenv("TOKEN_HOUR_LIFESPAN"))
 
 	if err != nil {
@@ -26,22 +26,23 @@ func GenerateToken(userID int64) (string, error) {
 	return token.SignedString([]byte(os.Getenv("API_SECRET")))
 }
 
-func TokenValid(c *gin.Context) (uint, error) {
+func TokenValid(c *gin.Context) (string, error) {
 	tokenString := ExtractToken(c)
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
+
 		return []byte(os.Getenv("API_SECRET")), nil
 	})
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	userID, err := extractTokenID(token)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	return userID, nil
@@ -57,16 +58,17 @@ func ExtractToken(c *gin.Context) string {
 	return ""
 }
 
-func extractTokenID(token *jwt.Token) (uint, error) {
+func extractTokenID(token *jwt.Token) (string, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
-		uid, err := strconv.ParseUint(fmt.Sprintf("%.0f", claims["sub"]), 10, 32)
-		if err != nil {
-			return 0, err
+
+		sub, ok := claims["sub"].(string)
+		if !ok {
+			return "", fmt.Errorf("Invalid token")
 		}
 
-		return uint(uid), nil
+		return sub, nil
 	}
 
-	return 0, nil
+	return "", nil
 }

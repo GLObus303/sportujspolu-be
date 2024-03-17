@@ -51,6 +51,7 @@ func startRouter(db *sql.DB) {
 	protectedUser := users.Group("")
 	protectedUser.Use(middleware.JwtAuth())
 	protectedUser.GET("/me", userService.GetMe)
+	protectedUser.DELETE("/me", userService.DeleteMe)
 
 	eventsService := events.NewEventsService(db)
 

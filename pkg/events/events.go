@@ -38,15 +38,13 @@ func (s *Service) includeOwner(event *models.EventWithOwner, c *gin.Context) err
 
 	ownerID := event.Owner_ID
 
-	var owner models.User
-	err := s.db.QueryRow("SELECT name, email, rating FROM users WHERE id = ?", ownerID).
+	var owner models.PublicUser
+	err := s.db.QueryRow("SELECT name, email, rating FROM users WHERE public_id = ?", ownerID).
 		Scan(&owner.Name, &owner.Email, &owner.Rating)
 
 	if err != nil {
 		return err
 	}
-
-	fmt.Println(owner)
 
 	event.Owner = &owner
 
@@ -167,9 +165,9 @@ func (s *Service) CreateEvent(c *gin.Context) {
 		log.Println("(CreateEvent) c.BindJSON", err)
 	}
 
-	userID, _ := c.Get(constants.UserID)
+	userID, _ := c.Get(constants.UserID_key)
 
-	newEvent.Owner_ID = uint16(userID.(uint))
+	newEvent.Owner_ID = userID.(string)
 	newEvent.Public_ID = utils.GenerateUUID()
 	newEvent.Created_At = time.Now()
 
@@ -182,12 +180,13 @@ func (s *Service) CreateEvent(c *gin.Context) {
 		values = append(values, newEvent.Price)
 	}
 
-	query += ") VALUES (?,?,?,?,?,?,?,?,?"
+	query += ") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9"
 	if newEvent.Price != 0 {
-		query += ",?"
+		query += ",$10"
 	}
 	query += ")"
 
+	fmt.Println(query, values)
 	_, err = s.db.Exec(query, values...)
 	if err != nil {
 		log.Println("(CreateEvent) db.Exec", err)
@@ -200,9 +199,9 @@ func (s *Service) CreateEvent(c *gin.Context) {
 }
 
 func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) bool {
-	userID, _ := c.Get(constants.UserID)
+	userID, _ := c.Get(constants.UserID_key)
 
-	var ownerID uint16
+	var ownerID string
 	err := s.db.QueryRow("SELECT owner_id FROM events WHERE public_id = $1", eventId).Scan(&ownerID)
 	if err != nil {
 		log.Println("(UpdateEvent) db.QueryRow", err)
@@ -211,7 +210,7 @@ func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) boo
 		return false
 	}
 
-	if ownerID != uint16(userID.(uint)) {
+	if ownerID != userID.(string) {
 		c.JSON(http.StatusForbidden, utils.GetError("You are not the owner of this event"))
 
 		return false
@@ -249,15 +248,10 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	query := "UPDATE events SET name = $1, sport = $2, date = $3, location = $4, price = $5, description = $6, level = $7 WHERE id = $8"
+	query := "UPDATE events SET name = $1, sport = $2, date = $3, location = $4, price = $5, description = $6, level = $7"
 	values := []interface{}{updates.Name, updates.Sport, updates.Date, updates.Location, updates.Price, updates.Description, updates.Level}
 
-	if updates.Price != 0 {
-		query += ", price = ?"
-		values = append(values, updates.Price)
-	}
-
-	query += " WHERE public_id = ?"
+	query += " WHERE public_id = $8"
 	values = append(values, eventId)
 
 	_, err = s.db.Exec(query, values...)
