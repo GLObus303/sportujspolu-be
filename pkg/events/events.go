@@ -30,6 +30,7 @@ func NewEventsService(db *sql.DB) *Service {
 
 func (s *Service) includeOwner(event *models.EventWithOwner, c *gin.Context) error {
 	includes := c.Query("includes")
+
 	if includes != "owner" {
 		event.Owner = nil
 
@@ -39,8 +40,8 @@ func (s *Service) includeOwner(event *models.EventWithOwner, c *gin.Context) err
 	ownerID := event.Owner_ID
 
 	var owner models.PublicUser
-	err := s.db.QueryRow("SELECT name, email, rating FROM users WHERE public_id = ?", ownerID).
-		Scan(&owner.Name, &owner.Email, &owner.Rating)
+	err := s.db.QueryRow("SELECT id, name, email, rating FROM users WHERE id = $1", ownerID).
+		Scan(&owner.ID, &owner.Name, &owner.Email, &owner.Rating)
 
 	if err != nil {
 		return err
@@ -130,7 +131,7 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 	}
 
 	if err := s.includeOwner(&event, c); err != nil {
-		log.Println("(GetEvents) includeOwner", err)
+		log.Println("(GetSingleEvent) includeOwner", err)
 	}
 
 	c.JSON(http.StatusOK, event)
