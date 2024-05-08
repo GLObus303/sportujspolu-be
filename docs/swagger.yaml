@@ -1,27 +1,47 @@
 basePath: /api/v1
 definitions:
-  events.EventInput:
+  models.EmailRequest:
     properties:
-      date:
+      approved:
+        example: false
+        type: boolean
+      approved_at:
         example: "2023-11-03T10:15:30Z"
         type: string
-      description:
-        example: Example Description
+      created_at:
+        example: "2023-11-03T10:15:30Z"
         type: string
-      level:
-        example: Any
+      event_id:
+        example: pwnrxtbi9z0v
         type: string
-      location:
-        example: Central Park
+      event_owner_id:
+        example: pwnrxtbi9z0v
         type: string
-      name:
-        example: Basketball Match at Park
-        type: string
-      price:
-        example: 123
+      id:
+        example: 1
         type: integer
-      sport:
-        example: Basketball
+      requester_id:
+        example: pwnrxtbi9z0v
+        type: string
+      text:
+        example: I would like to join your event.
+        type: string
+      updated_at:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+    type: object
+  models.EmailRequestApproveInput:
+    properties:
+      approved:
+        example: true
+        type: boolean
+    type: object
+  models.EmailRequestInput:
+    properties:
+      event_id:
+        example: pwnrxtbi9z0v
+        type: string
+      text:
         type: string
     type: object
   models.ErrorResponse:
@@ -62,6 +82,30 @@ definitions:
         example: Basketball
         type: string
     type: object
+  models.EventInput:
+    properties:
+      date:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      description:
+        example: Example Description
+        type: string
+      level:
+        example: Any
+        type: string
+      location:
+        example: Central Park
+        type: string
+      name:
+        example: Basketball Match at Park
+        type: string
+      price:
+        example: 123
+        type: integer
+      sport:
+        example: Basketball
+        type: string
+    type: object
   models.EventWithOwner:
     properties:
       createdAt:
@@ -86,7 +130,14 @@ definitions:
         example: Basketball Match at Park
         type: string
       owner:
-        $ref: '#/definitions/models.PublicUser'
+        additionalProperties:
+          type: string
+        example:
+          email: email@test.com
+          id: pwnrxtbi9z0v
+          name: John Doe
+          rating: "3"
+        type: object
       ownerId:
         example: pwnrxtbi9z0v
         type: string
@@ -193,7 +244,7 @@ paths:
         name: newEvent
         required: true
         schema:
-          $ref: '#/definitions/events.EventInput'
+          $ref: '#/definitions/models.EventInput'
       produces:
       - application/json
       responses:
@@ -303,7 +354,7 @@ paths:
         name: event
         required: true
         schema:
-          $ref: '#/definitions/events.EventInput'
+          $ref: '#/definitions/models.EventInput'
       produces:
       - application/json
       responses:
@@ -328,6 +379,95 @@ paths:
       summary: Update an event
       tags:
       - events
+  /messages/email/{id}/approve:
+    patch:
+      consumes:
+      - application/json
+      description: Approves an email request for a given ID
+      parameters:
+      - default: 1
+        description: Email Request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Approval status
+        in: body
+        name: approveInput
+        required: true
+        schema:
+          $ref: '#/definitions/models.EmailRequestApproveInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.EmailRequest'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Approve an email request
+      tags:
+      - messages
+  /messages/email/request:
+    post:
+      consumes:
+      - application/json
+      description: Sends an email request to join an event
+      parameters:
+      - description: Email Request object
+        in: body
+        name: newEmailRequest
+        required: true
+        schema:
+          $ref: '#/definitions/models.EmailRequestInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.EmailRequest'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Send an email request
+      tags:
+      - messages
+  /messages/email/user-requests:
+    get:
+      description: Retrieve all email requests from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of email requests
+          schema:
+            items:
+              $ref: '#/definitions/models.EmailRequest'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all email requests
+      tags:
+      - messages
   /user/login:
     post:
       consumes:

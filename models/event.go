@@ -18,5 +18,15 @@ type Event struct {
 
 type EventWithOwner struct {
 	Event
-	Owner *PublicUser `json:"owner,omitempty"`
+	Owner *PublicUser `json:"owner,omitempty" swaggertype:"object,string" example:"id:pwnrxtbi9z0v,name:John Doe,email:email@test.com,rating:3"`
+}
+
+type EventInput struct {
+	Name        string    `json:"name" example:"Basketball Match at Park"`
+	Sport       string    `json:"sport" example:"Basketball"`
+	Date        time.Time `json:"date" example:"2023-11-03T10:15:30Z"`
+	Location    string    `json:"location" example:"Central Park"`
+	Price       uint16    `json:"price" example:"123"`
+	Description string    `json:"description" example:"Example Description"`
+	Level       string    `json:"level" example:"Any"`
 }
