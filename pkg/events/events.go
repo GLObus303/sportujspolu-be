@@ -2,7 +2,6 @@ package events
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -62,10 +61,10 @@ func (s *Service) includeOwner(event *models.EventWithOwner, c *gin.Context) err
 // @Success 200 {array} models.EventWithOwner
 // @Failure 400 {object} models.ErrorResponse
 // @Router /events [get]
-func (s *Service) GetEvents(c *gin.Context) {
+func (s *Service) GetAllEvents(c *gin.Context) {
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
-		log.Println("(GetEvents)", err)
+		log.Println("(GetAllEvents)", err)
 		c.JSON(http.StatusBadRequest, utils.GetError("Invalid page parameter"))
 
 		return
@@ -73,7 +72,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 
 	limit, err := strconv.Atoi(c.DefaultQuery("limit", "12"))
 	if err != nil || limit < 1 {
-		log.Println("(GetEvents)", err)
+		log.Println("(GetAllEvents)", err)
 		c.JSON(http.StatusBadRequest, utils.GetError("Invalid limit parameter"))
 
 		return
@@ -82,7 +81,7 @@ func (s *Service) GetEvents(c *gin.Context) {
 	offset := (page - 1) * limit
 	res, err := s.db.Query("SELECT "+columns+" FROM events LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
-		log.Println("(GetEvents) db.Query", err)
+		log.Println("(GetAllEvents) db.Query", err)
 	}
 
 	defer res.Close()
@@ -92,14 +91,14 @@ func (s *Service) GetEvents(c *gin.Context) {
 		var event models.EventWithOwner
 		err := res.Scan(getColumnForEvent(&event)...)
 		if err != nil {
-			log.Println("(GetEvents) res.Scan", err)
+			log.Println("(GetAllEvents) res.Scan", err)
 		}
 		events = append(events, event)
 	}
 
 	for i := range events {
 		if err := s.includeOwner(&events[i], c); err != nil {
-			log.Println("(GetEvents) includeOwner", err)
+			log.Println("(GetAllEvents) includeOwner", err)
 		}
 	}
 
@@ -137,22 +136,12 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, event)
 }
 
-type EventInput struct {
-	Name        string    `json:"name" example:"Basketball Match at Park"`
-	Sport       string    `json:"sport" example:"Basketball"`
-	Date        time.Time `json:"date" example:"2023-11-03T10:15:30Z"`
-	Location    string    `json:"location" example:"Central Park"`
-	Price       uint16    `json:"price" example:"123"`
-	Description string    `json:"description" example:"Example Description"`
-	Level       string    `json:"level" example:"Any"`
-}
-
 // @Summary Create a new event
 // @Description Creates a new event in the database
 // @Tags events
 // @Accept json
 // @Produce json
-// @Param newEvent body EventInput true "Event object"
+// @Param newEvent body models.EventInput true "Event object"
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -160,15 +149,24 @@ type EventInput struct {
 // @Security BearerAuth
 // @Router /events [post]
 func (s *Service) CreateEvent(c *gin.Context) {
-	var newEvent models.Event
-	err := c.BindJSON(&newEvent)
+	var inputEvent models.EventInput
+	err := c.BindJSON(&inputEvent)
 	if err != nil {
 		log.Println("(CreateEvent) c.BindJSON", err)
 	}
 
-	userID, _ := c.Get(constants.UserID_key)
+	userID := c.GetString(constants.UserID_key)
 
-	newEvent.Owner_ID = userID.(string)
+	newEvent := models.Event{}
+
+	if err := utils.CopyFields(&inputEvent, &newEvent); err != nil {
+		log.Println("(CopyFields):", err)
+		c.JSON(http.StatusInternalServerError, utils.GetError("Error creating event"))
+
+		return
+	}
+
+	newEvent.Owner_ID = userID
 	newEvent.Public_ID = utils.GenerateUUID()
 	newEvent.Created_At = time.Now()
 
@@ -187,7 +185,6 @@ func (s *Service) CreateEvent(c *gin.Context) {
 	}
 	query += ")"
 
-	fmt.Println(query, values)
 	_, err = s.db.Exec(query, values...)
 	if err != nil {
 		log.Println("(CreateEvent) db.Exec", err)
@@ -200,7 +197,7 @@ func (s *Service) CreateEvent(c *gin.Context) {
 }
 
 func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) bool {
-	userID, _ := c.Get(constants.UserID_key)
+	userID := c.GetString(constants.UserID_key)
 
 	var ownerID string
 	err := s.db.QueryRow("SELECT owner_id FROM events WHERE public_id = $1", eventId).Scan(&ownerID)
@@ -211,7 +208,7 @@ func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) boo
 		return false
 	}
 
-	if ownerID != userID.(string) {
+	if ownerID != userID {
 		c.JSON(http.StatusForbidden, utils.GetError("You are not the owner of this event"))
 
 		return false
@@ -226,7 +223,7 @@ func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) boo
 // @Accept json
 // @Produce json
 // @Param eventId path string true "Event ID" example(q76j5d1a3xtn)
-// @Param event body EventInput true "Event object that needs to be updated"
+// @Param event body models.EventInput true "Event object that needs to be updated"
 // @Success 200 {object} models.Event
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 401 {object} models.ErrorResponse
@@ -234,7 +231,7 @@ func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) boo
 // @Security BearerAuth
 // @Router /events/{eventId} [put]
 func (s *Service) UpdateEvent(c *gin.Context) {
-	var updates EventInput
+	var updates models.EventInput
 	err := c.BindJSON(&updates)
 	if err != nil {
 		log.Println("(UpdateEvent) c.BindJSON", err)

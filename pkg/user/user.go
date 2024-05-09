@@ -16,7 +16,7 @@ import (
 // @Success 200 {object} models.PublicUser
 // @Router /user/me [get]
 func (s *Service) GetMe(c *gin.Context) {
-	userID, _ := c.Get(constants.UserID_key)
+	userID := c.GetString(constants.UserID_key)
 
 	u := models.User{}
 
@@ -44,7 +44,7 @@ func (s *Service) GetMe(c *gin.Context) {
 // @Success 200 {object} string
 // @Router /user/me [delete]
 func (s *Service) DeleteMe(c *gin.Context) {
-	userID, _ := c.Get(constants.UserID_key)
+	userID := c.GetString(constants.UserID_key)
 
 	_, err := s.db.Exec(`DELETE FROM users WHERE ID = $1`, userID)
 	if err != nil {
