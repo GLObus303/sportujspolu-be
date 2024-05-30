@@ -18,7 +18,7 @@ type EmailRequest struct {
 
 type EmailRequestInput struct {
 	Text    string `json:"text"`
-	EventID string `json:"event_id" example:"pwnrxtbi9z0v"`
+	EventID string `json:"eventId" example:"pwnrxtbi9z0v"`
 }
 
 type EmailRequestApproveInput struct {
