@@ -5,28 +5,28 @@ definitions:
       approved:
         example: false
         type: boolean
-      approved_at:
+      approvedAt:
         example: "2023-11-03T10:15:30Z"
         type: string
-      created_at:
+      createdAt:
         example: "2023-11-03T10:15:30Z"
         type: string
-      event_id:
+      eventId:
         example: pwnrxtbi9z0v
         type: string
-      event_owner_id:
+      eventOwnerId:
         example: pwnrxtbi9z0v
         type: string
       id:
         example: 1
         type: integer
-      requester_id:
+      requesterId:
         example: pwnrxtbi9z0v
         type: string
       text:
         example: I would like to join your event.
         type: string
-      updated_at:
+      updatedAt:
         example: "2023-11-03T10:15:30Z"
         type: string
     type: object
@@ -38,7 +38,7 @@ definitions:
     type: object
   models.EmailRequestInput:
     properties:
-      event_id:
+      eventId:
         example: pwnrxtbi9z0v
         type: string
       text:
