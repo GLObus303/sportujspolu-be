@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,6 +13,34 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
+
+func loadPrivateKey() (*rsa.PrivateKey, error) {
+	privateKeyBytes, err := os.ReadFile("etc/secrets/private.key")
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(privateKeyBytes)
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		return nil, fmt.Errorf("failed to decode PEM block containing private key")
+	}
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}
+
+func loadPublicKey() (*rsa.PublicKey, error) {
+	publicKeyBytes, err := os.ReadFile("etc/secrets/public.key")
+	if err != nil {
+		return nil, err
+	}
+	block, _ := pem.Decode(publicKeyBytes)
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, fmt.Errorf("failed to decode PEM block containing public key")
+	}
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	return pubKey.(*rsa.PublicKey), nil
+}
 
 func GenerateToken(userID string) (string, error) {
 	token_lifespan, err := strconv.Atoi(os.Getenv("TOKEN_HOUR_LIFESPAN"))
@@ -21,20 +52,29 @@ func GenerateToken(userID string) (string, error) {
 	claims := jwt.MapClaims{}
 	claims["sub"] = userID
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(token_lifespan)).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 
-	return token.SignedString([]byte(os.Getenv("API_SECRET")))
+	privateKey, err := loadPrivateKey()
+	if err != nil {
+		return "", err
+	}
+
+	return token.SignedString(privateKey)
 }
 
 func TokenValid(c *gin.Context) (string, error) {
 	tokenString := ExtractToken(c)
 
+	publicKey, err := loadPublicKey()
+	if err != nil {
+		return "", err
+	}
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-
-		return []byte(os.Getenv("API_SECRET")), nil
+		return publicKey, nil
 	})
 	if err != nil {
 		return "", err
