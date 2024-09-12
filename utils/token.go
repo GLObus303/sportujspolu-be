@@ -1,6 +1,9 @@
 package utils
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,6 +13,38 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 )
+
+func loadPrivateKeyFromEnv() (*rsa.PrivateKey, error) {
+	privateKeyPEM := os.Getenv("PRIVATE_KEY")
+
+	block, _ := pem.Decode([]byte(privateKeyPEM))
+	if block == nil || block.Type != "RSA PRIVATE KEY" {
+		return nil, fmt.Errorf("failed to decode PEM block containing private key")
+	}
+
+	return x509.ParsePKCS1PrivateKey(block.Bytes)
+}
+
+func loadPublicKeyFromEnv() (*rsa.PublicKey, error) {
+	publicKeyPEM := os.Getenv("PUBLIC_KEY")
+
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if block == nil || block.Type != "PUBLIC KEY" {
+		return nil, fmt.Errorf("failed to decode PEM block containing public key")
+	}
+
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %v", err)
+	}
+
+	rsaPubKey, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("not an RSA public key")
+	}
+
+	return rsaPubKey, nil
+}
 
 func GenerateToken(userID string) (string, error) {
 	token_lifespan, err := strconv.Atoi(os.Getenv("TOKEN_HOUR_LIFESPAN"))
@@ -21,20 +56,30 @@ func GenerateToken(userID string) (string, error) {
 	claims := jwt.MapClaims{}
 	claims["sub"] = userID
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(token_lifespan)).Unix()
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 
-	return token.SignedString([]byte(os.Getenv("API_SECRET")))
+	privateKey, err := loadPrivateKeyFromEnv()
+	if err != nil {
+		return "", err
+	}
+
+	return token.SignedString(privateKey)
 }
 
 func TokenValid(c *gin.Context) (string, error) {
 	tokenString := ExtractToken(c)
 
+	publicKey, err := loadPublicKeyFromEnv()
+	if err != nil {
+		return "", err
+	}
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return []byte(os.Getenv("API_SECRET")), nil
+		return publicKey, nil
 	})
 	if err != nil {
 		return "", err
