@@ -12,19 +12,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Service struct {
+type UserService struct {
 	db *sql.DB
 }
 
-func NewUserService(db *sql.DB) *Service {
-	return &Service{db}
+func NewUserService(db *sql.DB) *UserService {
+	return &UserService{db}
 }
 
 func verifyPassword(password, hashedPassword string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func loginCheck(email string, password string, s *Service) (string, error) {
+func loginCheck(email string, password string, s *UserService) (string, error) {
 	var err error
 
 	u := models.User{}
@@ -64,7 +64,7 @@ type LoginInput struct {
 // @Success 200 {object} string
 // @Failure 400 {object} string
 // @Router /user/login [post]
-func (s *Service) Login(c *gin.Context) {
+func (s *UserService) Login(c *gin.Context) {
 	var input LoginInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -102,7 +102,7 @@ type RegisterInput struct {
 // @Success 200 {object} string
 // @Failure 400 {object} string
 // @Router /user/register [post]
-func (s *Service) Register(c *gin.Context) {
+func (s *UserService) Register(c *gin.Context) {
 	var input RegisterInput
 
 	if err := c.ShouldBindJSON(&input); err != nil {

@@ -77,7 +77,8 @@ func startRouter(db *sql.DB) {
 
 	protectedMessages.POST("/email/request", messagesService.SendEmailRequest)
 	protectedMessages.PATCH("/email/:requestId/approve", messagesService.ApproveEmailRequest)
-	protectedMessages.GET("/email/user-requests", messagesService.GetAllEmailRequests)
+	protectedMessages.GET("/email/sent-user-requests", messagesService.GetAllSentEmailRequests)
+	protectedMessages.GET("/email/received-owner-requests", messagesService.GetAllReceivedOwnerEmailRequests)
 
 	//	@Summary Health check
 	//	@Description Returns the status of the server.

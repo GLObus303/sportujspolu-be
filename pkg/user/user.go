@@ -15,7 +15,7 @@ import (
 // @Produce  json
 // @Success 200 {object} models.PublicUser
 // @Router /user/me [get]
-func (s *Service) GetMe(c *gin.Context) {
+func (s *UserService) GetMe(c *gin.Context) {
 	userID := c.GetString(constants.UserID_key)
 
 	u := models.User{}
@@ -43,7 +43,7 @@ func (s *Service) GetMe(c *gin.Context) {
 // @Produce  json
 // @Success 200 {object} string
 // @Router /user/me [delete]
-func (s *Service) DeleteMe(c *gin.Context) {
+func (s *UserService) DeleteMe(c *gin.Context) {
 	userID := c.GetString(constants.UserID_key)
 
 	_, err := s.db.Exec(`DELETE FROM users WHERE ID = $1`, userID)

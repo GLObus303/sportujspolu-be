@@ -2,6 +2,7 @@ package messages
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -12,12 +13,12 @@ import (
 	"github.com/globus303/sportujspolu/utils"
 )
 
-type Service struct {
+type MessageService struct {
 	db *sql.DB
 }
 
-func NewMessagesService(db *sql.DB) *Service {
-	return &Service{db}
+func NewMessagesService(db *sql.DB) *MessageService {
+	return &MessageService{db}
 }
 
 // @Summary Send an email request
@@ -30,7 +31,7 @@ func NewMessagesService(db *sql.DB) *Service {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /messages/email/request [post]
-func (s *Service) SendEmailRequest(c *gin.Context) {
+func (s *MessageService) SendEmailRequest(c *gin.Context) {
 	var inputEmailRequest models.EmailRequestInput
 	if err := c.BindJSON(&inputEmailRequest); err != nil {
 		log.Println("(SendEmailRequest) c.BindJSON", err)
@@ -38,17 +39,17 @@ func (s *Service) SendEmailRequest(c *gin.Context) {
 		return
 	}
 
+	requesterID := c.GetString(constants.UserID_key)
+
 	var eventOwnerID string
-	query := "SELECT owner_id FROM events WHERE public_id = $1"
-	err := s.db.QueryRow(query, inputEmailRequest.EventID).Scan(&eventOwnerID)
+	query := "SELECT owner_id FROM events WHERE public_id = $1 AND owner_id != $2"
+	err := s.db.QueryRow(query, inputEmailRequest.EventID, requesterID).Scan(&eventOwnerID)
 	if err != nil {
 		log.Println("(SendEmailRequest) db.QueryRow", err)
 		c.JSON(http.StatusNotFound, utils.GetError("Event not found"))
 
 		return
 	}
-
-	requesterID := c.GetString(constants.UserID_key)
 
 	query = `
     SELECT id
@@ -104,12 +105,12 @@ func (s *Service) SendEmailRequest(c *gin.Context) {
 // @Produce json
 // @Param id path int true "Email Request ID" default(1)
 // @Param approveInput body models.EmailRequestApproveInput true "Approval status"
-// @Success 200 {object} models.EmailRequest
+// @Success 200 {object} EmailRequestApproveResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /messages/email/{id}/approve [patch]
-func (s *Service) ApproveEmailRequest(c *gin.Context) {
+func (s *MessageService) ApproveEmailRequest(c *gin.Context) {
 	requestId := c.Param("requestId")
 
 	var approveInput models.EmailRequestApproveInput
@@ -122,16 +123,26 @@ func (s *Service) ApproveEmailRequest(c *gin.Context) {
 	query := `
 		UPDATE email_requests
 		SET approved = $1, approved_at = $2, updated_at = $3
-		WHERE id = $4 AND event_owner_id = $5 AND approved IS NULL
-		RETURNING id, text, event_id, event_owner_id, requester_id, approved, approved_at, created_at, updated_at
+		WHERE id = $4 AND event_owner_id = $5 AND approved IS NULL AND requester_id != $5
+		RETURNING
+      id,
+      text,
+      event_id,
+      event_owner_id,
+      requester_id,
+      approved,
+      approved_at,
+      created_at,
+      updated_at,
+      (SELECT users.email FROM users WHERE users.id = email_requests.requester_id) AS requester_email
 		`
 
 	userID := c.GetString(constants.UserID_key)
 
-	var emailRequest models.EmailRequest
+	var emailRequest models.EmailRequestApproveResponse
 	err := s.db.QueryRow(query, approveInput.Approved, time.Now(), time.Now(), requestId, userID).Scan(
 		&emailRequest.ID, &emailRequest.Text, &emailRequest.EventID, &emailRequest.EventOwnerID,
-		&emailRequest.RequesterID, &emailRequest.Approved, &emailRequest.ApprovedAt, &emailRequest.CreatedAt, &emailRequest.UpdatedAt,
+		&emailRequest.RequesterID, &emailRequest.Approved, &emailRequest.ApprovedAt, &emailRequest.CreatedAt, &emailRequest.UpdatedAt, &emailRequest.RequesterEmail,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -150,19 +161,19 @@ func (s *Service) ApproveEmailRequest(c *gin.Context) {
 	c.JSON(http.StatusOK, emailRequest)
 }
 
-// @Summary Get all email requests
-// @Description Retrieve all email requests from the database
-// @Tags messages
-// @Produce json
-// @Success 200 {array} models.EmailRequest "List of email requests"
-// @Failure 500 {object} models.ErrorResponse "Internal server error"
-// @Router /messages/email/user-requests [get]
-func (s *Service) GetAllEmailRequests(c *gin.Context) {
-	query := `
-			SELECT id, text, event_id, event_owner_id, requester_id, approved, approved_at, created_at, updated_at
-			FROM email_requests
-			WHERE approved IS NULL AND event_owner_id = $1
-	`
+func getEmailRequests(c *gin.Context, s *MessageService, query string) error {
+	approvedFilter := c.Query("approvedFilter")
+
+	fmt.Println("approvedFilter", approvedFilter)
+
+	switch approvedFilter {
+	case "true":
+		query += " AND approved = true"
+	case "false":
+		query += " AND approved = false"
+	case "null":
+		query += " AND approved IS NULL"
+	}
 
 	userID := c.GetString(constants.UserID_key)
 
@@ -171,14 +182,14 @@ func (s *Service) GetAllEmailRequests(c *gin.Context) {
 		log.Println("(GetAllEmailRequests) Error querying database:", err)
 		c.JSON(http.StatusInternalServerError, utils.GetError("Failed to retrieve email requests"))
 
-		return
+		return err
 	}
 	defer rows.Close()
 
-	var emailRequests []models.EmailRequest
+	var emailRequests []models.EmailRequestResponse
 
 	for rows.Next() {
-		var emailRequest models.EmailRequest
+		var emailRequest models.EmailRequestResponse
 		err := rows.Scan(
 			&emailRequest.ID,
 			&emailRequest.Text,
@@ -189,20 +200,101 @@ func (s *Service) GetAllEmailRequests(c *gin.Context) {
 			&emailRequest.ApprovedAt,
 			&emailRequest.CreatedAt,
 			&emailRequest.UpdatedAt,
+			&emailRequest.EventOwnerName,
+			&emailRequest.EventName,
+			&emailRequest.EventOwnerEmail,
 		)
 		if err != nil {
 			log.Println("(GetAllEmailRequests) Error scanning row:", err)
 			c.JSON(http.StatusInternalServerError, utils.GetError("Failed to parse email requests"))
 
-			return
+			return err
 		}
 
 		emailRequests = append(emailRequests, emailRequest)
 	}
 
 	if len(emailRequests) == 0 {
-		c.JSON(http.StatusOK, []models.EmailRequest{})
+		c.JSON(http.StatusOK, []models.EmailRequestResponse{})
 	} else {
 		c.JSON(http.StatusOK, emailRequests)
+	}
+
+	return nil
+}
+
+// @Summary Get all email requests send as user
+// @Description Retrieve all email requests for user from the database
+// @Tags messages
+// @Produce json
+// @Param approvedFilter query boolean false "Approved filter" Enums(true, false, null) default(null)
+// @Success 200 {array} models.EmailRequestResponse "List of email requests"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Router /messages/email/sent-user-requests [get]
+func (s *MessageService) GetAllSentEmailRequests(c *gin.Context) {
+	query := `
+        SELECT
+          email_requests.id,
+          email_requests.text,
+          email_requests.event_id,
+          email_requests.event_owner_id,
+          email_requests.requester_id,
+          email_requests.approved,
+          email_requests.approved_at,
+          email_requests.created_at,
+          email_requests.updated_at,
+          users.name AS event_owner_name,
+          events.name AS event_name,
+             (CASE
+            WHEN email_requests.approved = true
+            THEN users.email
+            ELSE NULL
+          END) AS event_owner_email
+
+        FROM email_requests
+        LEFT JOIN users ON users.id = email_requests.event_owner_id
+        LEFT JOIN events ON events.public_id = email_requests.event_id
+        WHERE email_requests.requester_id = $1
+`
+
+	err := getEmailRequests(c, s, query)
+	if err != nil {
+		return
+	}
+}
+
+// @Summary Get all email requests received as owner
+// @Description Retrieve all email requests for owner from the database
+// @Tags messages
+// @Produce json
+// @Param approvedFilter query boolean false "Approved filter" Enums(true, false, null) default(null)
+// @Success 200 {array} models.EmailRequestResponse "List of email requests"
+// @Failure 500 {object} models.ErrorResponse "Internal server error"
+// @Router /messages/email/received-owner-requests [get]
+func (s *MessageService) GetAllReceivedOwnerEmailRequests(c *gin.Context) {
+	query := `
+        SELECT
+          email_requests.id,
+          email_requests.text,
+          email_requests.event_id,
+          email_requests.event_owner_id,
+          email_requests.requester_id,
+          email_requests.approved,
+          email_requests.approved_at,
+          email_requests.created_at,
+          email_requests.updated_at,
+          users.name AS event_owner_name,
+          events.name AS event_name,
+          NULL AS event_owner_email
+
+        FROM email_requests
+        LEFT JOIN users ON users.id = email_requests.event_owner_id
+        LEFT JOIN events ON events.public_id = email_requests.event_id
+        WHERE email_requests.event_owner_id = $1
+`
+
+	err := getEmailRequests(c, s, query)
+	if err != nil {
+		return
 	}
 }

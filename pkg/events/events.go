@@ -19,15 +19,15 @@ func getColumnForEvent(event *models.EventWithOwner) []interface{} {
 	return []interface{}{&event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID, &event.Created_At, &event.Owner_ID}
 }
 
-type Service struct {
+type EventsService struct {
 	db *sql.DB
 }
 
-func NewEventsService(db *sql.DB) *Service {
-	return &Service{db}
+func NewEventsService(db *sql.DB) *EventsService {
+	return &EventsService{db}
 }
 
-func (s *Service) includeOwner(event *models.EventWithOwner, c *gin.Context) error {
+func (s *EventsService) includeOwner(event *models.EventWithOwner, c *gin.Context) error {
 	includes := c.Query("includes")
 
 	if includes != "owner" {
@@ -61,7 +61,7 @@ func (s *Service) includeOwner(event *models.EventWithOwner, c *gin.Context) err
 // @Success 200 {array} models.EventWithOwner
 // @Failure 400 {object} models.ErrorResponse
 // @Router /events [get]
-func (s *Service) GetAllEvents(c *gin.Context) {
+func (s *EventsService) GetAllEvents(c *gin.Context) {
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
 		log.Println("(GetAllEvents)", err)
@@ -116,7 +116,7 @@ func (s *Service) GetAllEvents(c *gin.Context) {
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /events/{eventId} [get]
-func (s *Service) GetSingleEvent(c *gin.Context) {
+func (s *EventsService) GetSingleEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 
 	var event models.EventWithOwner
@@ -148,7 +148,7 @@ func (s *Service) GetSingleEvent(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /events [post]
-func (s *Service) CreateEvent(c *gin.Context) {
+func (s *EventsService) CreateEvent(c *gin.Context) {
 	var inputEvent models.EventInput
 	err := c.BindJSON(&inputEvent)
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *Service) CreateEvent(c *gin.Context) {
 	c.JSON(http.StatusOK, newEvent)
 }
 
-func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) bool {
+func (s *EventsService) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) bool {
 	userID := c.GetString(constants.UserID_key)
 
 	var ownerID string
@@ -230,7 +230,7 @@ func (s *Service) validateUserIsOwnerOfEvent(c *gin.Context, eventId string) boo
 // @Failure 500 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /events/{eventId} [put]
-func (s *Service) UpdateEvent(c *gin.Context) {
+func (s *EventsService) UpdateEvent(c *gin.Context) {
 	var updates models.EventInput
 	err := c.BindJSON(&updates)
 	if err != nil {
@@ -273,7 +273,7 @@ func (s *Service) UpdateEvent(c *gin.Context) {
 // @Failure 500 {object} models.ErrorResponse
 // @Security BearerAuth
 // @Router /events/{eventId} [delete]
-func (s *Service) DeleteEvent(c *gin.Context) {
+func (s *EventsService) DeleteEvent(c *gin.Context) {
 	eventId := c.Param("eventId")
 
 	if !s.validateUserIsOwnerOfEvent(c, eventId) {

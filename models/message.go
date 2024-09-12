@@ -24,3 +24,17 @@ type EmailRequestInput struct {
 type EmailRequestApproveInput struct {
 	Approved bool `json:"approved" example:"true"`
 }
+
+type EmailRequestApproveResponse struct {
+	EmailRequest
+
+	RequesterEmail string `json:"requesterEmail" example:"example@domain.com"`
+}
+
+type EmailRequestResponse struct {
+	EmailRequest
+
+	EventOwnerName  *string `json:"eventOwnerName,omitempty" example:"Owner Name"`
+	EventOwnerEmail *string `json:"eventOwnerEmail,omitempty" example:"email@test.com"`
+	EventName       *string `json:"eventName,omitempty" example:"Sample Event"`
+}
