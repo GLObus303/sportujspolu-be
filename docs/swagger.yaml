@@ -1,5 +1,44 @@
 basePath: /api/v1
 definitions:
+  messages.EmailRequestResponse:
+    properties:
+      approved:
+        example: false
+        type: boolean
+      approvedAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      createdAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      eventId:
+        example: pwnrxtbi9z0v
+        type: string
+      eventName:
+        example: Sample Event
+        type: string
+      eventOwnerEmail:
+        example: email@test.com
+        type: string
+      eventOwnerId:
+        example: pwnrxtbi9z0v
+        type: string
+      eventOwnerName:
+        example: Owner Name
+        type: string
+      id:
+        example: 1
+        type: integer
+      requesterId:
+        example: pwnrxtbi9z0v
+        type: string
+      text:
+        example: I would like to join your event.
+        type: string
+      updatedAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+    type: object
   models.EmailRequest:
     properties:
       approved:
@@ -419,6 +458,35 @@ paths:
       summary: Approve an email request
       tags:
       - messages
+  /messages/email/received-owner-requests:
+    get:
+      description: Retrieve all email requests for owner from the database
+      parameters:
+      - default: '"null"'
+        description: Approved filter
+        enum:
+        - '"true"'
+        - '"false"'
+        - '"null"'
+        in: query
+        name: approvedFilter
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of email requests
+          schema:
+            items:
+              $ref: '#/definitions/messages.EmailRequestResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all email requests received as owner
+      tags:
+      - messages
   /messages/email/request:
     post:
       consumes:
@@ -449,9 +517,19 @@ paths:
       summary: Send an email request
       tags:
       - messages
-  /messages/email/user-requests:
+  /messages/email/sent-user-requests:
     get:
-      description: Retrieve all email requests from the database
+      description: Retrieve all email requests for user from the database
+      parameters:
+      - default: '"null"'
+        description: Approved filter
+        enum:
+        - '"true"'
+        - '"false"'
+        - '"null"'
+        in: query
+        name: approvedFilter
+        type: string
       produces:
       - application/json
       responses:
@@ -459,13 +537,13 @@ paths:
           description: List of email requests
           schema:
             items:
-              $ref: '#/definitions/models.EmailRequest'
+              $ref: '#/definitions/messages.EmailRequestResponse'
             type: array
         "500":
           description: Internal server error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
-      summary: Get all email requests
+      summary: Get all email requests send as user
       tags:
       - messages
   /user/login:
