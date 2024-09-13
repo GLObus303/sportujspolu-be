@@ -3,6 +3,7 @@ package user
 import (
 	"database/sql"
 	"html"
+	"log"
 	"net/http"
 	"strings"
 
@@ -80,6 +81,7 @@ func (s *UserService) Login(c *gin.Context) {
 	token, err := loginCheck(u.Email, u.Password, s)
 
 	if err != nil {
+		log.Println("(Login) loginCheck", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email or password is incorrect."})
 		return
 	}
