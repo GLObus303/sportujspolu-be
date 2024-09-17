@@ -17,6 +17,7 @@ func JwtAuth() gin.HandlerFunc {
 			log.Println("(JwtAuth) utils.TokenValid", err)
 			c.String(http.StatusUnauthorized, "Unauthorized")
 			c.Abort()
+
 			return
 		}
 

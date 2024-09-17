@@ -1,44 +1,5 @@
 basePath: /api/v1
 definitions:
-  messages.EmailRequestResponse:
-    properties:
-      approved:
-        example: false
-        type: boolean
-      approvedAt:
-        example: "2023-11-03T10:15:30Z"
-        type: string
-      createdAt:
-        example: "2023-11-03T10:15:30Z"
-        type: string
-      eventId:
-        example: pwnrxtbi9z0v
-        type: string
-      eventName:
-        example: Sample Event
-        type: string
-      eventOwnerEmail:
-        example: email@test.com
-        type: string
-      eventOwnerId:
-        example: pwnrxtbi9z0v
-        type: string
-      eventOwnerName:
-        example: Owner Name
-        type: string
-      id:
-        example: 1
-        type: integer
-      requesterId:
-        example: pwnrxtbi9z0v
-        type: string
-      text:
-        example: I would like to join your event.
-        type: string
-      updatedAt:
-        example: "2023-11-03T10:15:30Z"
-        type: string
-    type: object
   models.EmailRequest:
     properties:
       approved:
@@ -75,12 +36,84 @@ definitions:
         example: true
         type: boolean
     type: object
+  models.EmailRequestApproveResponse:
+    properties:
+      approved:
+        example: false
+        type: boolean
+      approvedAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      createdAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      eventId:
+        example: pwnrxtbi9z0v
+        type: string
+      eventOwnerId:
+        example: pwnrxtbi9z0v
+        type: string
+      id:
+        example: 1
+        type: integer
+      requesterEmail:
+        example: example@domain.com
+        type: string
+      requesterId:
+        example: pwnrxtbi9z0v
+        type: string
+      text:
+        example: I would like to join your event.
+        type: string
+      updatedAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+    type: object
   models.EmailRequestInput:
     properties:
       eventId:
         example: pwnrxtbi9z0v
         type: string
       text:
+        type: string
+    type: object
+  models.EmailRequestResponse:
+    properties:
+      approved:
+        example: false
+        type: boolean
+      approvedAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      createdAt:
+        example: "2023-11-03T10:15:30Z"
+        type: string
+      eventId:
+        example: pwnrxtbi9z0v
+        type: string
+      eventName:
+        example: Sample Event
+        type: string
+      eventOwnerEmail:
+        example: email@test.com
+        type: string
+      eventOwnerId:
+        example: pwnrxtbi9z0v
+        type: string
+      eventOwnerName:
+        example: Owner Name
+        type: string
+      id:
+        example: 1
+        type: integer
+      requesterId:
+        example: pwnrxtbi9z0v
+        type: string
+      text:
+        example: I would like to join your event.
+        type: string
+      updatedAt:
+        example: "2023-11-03T10:15:30Z"
         type: string
     type: object
   models.ErrorResponse:
@@ -185,6 +218,18 @@ definitions:
         type: integer
       sport:
         example: Basketball
+        type: string
+    type: object
+  models.Level:
+    properties:
+      id:
+        example: 1
+        type: integer
+      label:
+        example: Beginner
+        type: string
+      value:
+        example: beginner
         type: string
     type: object
   models.PublicUser:
@@ -442,7 +487,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.EmailRequest'
+            $ref: '#/definitions/models.EmailRequestApproveResponse'
         "400":
           description: Bad Request
           schema:
@@ -462,12 +507,12 @@ paths:
     get:
       description: Retrieve all email requests for owner from the database
       parameters:
-      - default: '"null"'
+      - default: "null"
         description: Approved filter
         enum:
-        - '"true"'
-        - '"false"'
-        - '"null"'
+        - "true"
+        - "false"
+        - "null"
         in: query
         name: approvedFilter
         type: string
@@ -478,7 +523,7 @@ paths:
           description: List of email requests
           schema:
             items:
-              $ref: '#/definitions/messages.EmailRequestResponse'
+              $ref: '#/definitions/models.EmailRequestResponse'
             type: array
         "500":
           description: Internal server error
@@ -521,12 +566,12 @@ paths:
     get:
       description: Retrieve all email requests for user from the database
       parameters:
-      - default: '"null"'
+      - default: "null"
         description: Approved filter
         enum:
-        - '"true"'
-        - '"false"'
-        - '"null"'
+        - "true"
+        - "false"
+        - "null"
         in: query
         name: approvedFilter
         type: string
@@ -537,7 +582,7 @@ paths:
           description: List of email requests
           schema:
             items:
-              $ref: '#/definitions/messages.EmailRequestResponse'
+              $ref: '#/definitions/models.EmailRequestResponse'
             type: array
         "500":
           description: Internal server error
@@ -546,6 +591,25 @@ paths:
       summary: Get all email requests send as user
       tags:
       - messages
+  /references/levels:
+    get:
+      description: Retrieves all levels from the database
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Level'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all levels
+      tags:
+      - levels
   /user/login:
     post:
       consumes:

@@ -36,6 +36,7 @@ func (s *MessageService) SendEmailRequest(c *gin.Context) {
 	if err := c.BindJSON(&inputEmailRequest); err != nil {
 		log.Println("(SendEmailRequest) c.BindJSON", err)
 		c.JSON(http.StatusBadRequest, utils.GetError("Invalid request data"))
+
 		return
 	}
 
@@ -105,7 +106,7 @@ func (s *MessageService) SendEmailRequest(c *gin.Context) {
 // @Produce json
 // @Param id path int true "Email Request ID" default(1)
 // @Param approveInput body models.EmailRequestApproveInput true "Approval status"
-// @Success 200 {object} EmailRequestApproveResponse
+// @Success 200 {object} models.EmailRequestApproveResponse
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 404 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
@@ -227,7 +228,7 @@ func getEmailRequests(c *gin.Context, s *MessageService, query string) error {
 // @Description Retrieve all email requests for user from the database
 // @Tags messages
 // @Produce json
-// @Param approvedFilter query boolean false "Approved filter" Enums(true, false, null) default(null)
+// @Param approvedFilter query string false "Approved filter" Enums(true, false, null) default(null)
 // @Success 200 {array} models.EmailRequestResponse "List of email requests"
 // @Failure 500 {object} models.ErrorResponse "Internal server error"
 // @Router /messages/email/sent-user-requests [get]
@@ -267,7 +268,7 @@ func (s *MessageService) GetAllSentEmailRequests(c *gin.Context) {
 // @Description Retrieve all email requests for owner from the database
 // @Tags messages
 // @Produce json
-// @Param approvedFilter query boolean false "Approved filter" Enums(true, false, null) default(null)
+// @Param approvedFilter query string false "Approved filter" Enums(true, false, null) default(null)
 // @Success 200 {array} models.EmailRequestResponse "List of email requests"
 // @Failure 500 {object} models.ErrorResponse "Internal server error"
 // @Router /messages/email/received-owner-requests [get]
