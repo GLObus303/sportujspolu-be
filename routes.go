@@ -12,6 +12,7 @@ import (
 	"github.com/globus303/sportujspolu/middleware"
 	"github.com/globus303/sportujspolu/pkg/events"
 	"github.com/globus303/sportujspolu/pkg/messages"
+	"github.com/globus303/sportujspolu/pkg/references"
 	"github.com/globus303/sportujspolu/pkg/user"
 	adapter "github.com/gwatts/gin-adapter"
 	"github.com/joho/godotenv"
@@ -44,19 +45,21 @@ func startRouter(db *sql.DB) {
 	router.Use(adapter.Wrap(cors))
 	v1 := router.Group("/api/v1")
 
-	// User
 	userService := user.NewUserService(db)
 
 	user := v1.Group("/user")
 	user.POST("/register", userService.Register)
 	user.POST("/login", userService.Login)
 
-	protectedUser := user.Group("")
-	protectedUser.Use(middleware.JwtAuth())
+	protectedUser := user.Group("").Use(middleware.JwtAuth())
 	protectedUser.GET("/me", userService.GetMe)
 	protectedUser.DELETE("/me", userService.DeleteMe)
 
-	// Events
+	referencesService := references.NewReferencesService(db)
+
+	levels := v1.Group("/references")
+	levels.GET("/levels", referencesService.GetAllLevels)
+
 	eventsService := events.NewEventsService(db)
 
 	events := v1.Group("/events")
@@ -70,11 +73,9 @@ func startRouter(db *sql.DB) {
 	protectedEvents.PUT("/:eventId", eventsService.UpdateEvent)
 	protectedEvents.DELETE("/:eventId", eventsService.DeleteEvent)
 
-	// Messages
 	messagesService := messages.NewMessagesService(db)
 
 	protectedMessages := v1.Group("/messages").Use(middleware.JwtAuth())
-
 	protectedMessages.POST("/email/request", messagesService.SendEmailRequest)
 	protectedMessages.PATCH("/email/:requestId/approve", messagesService.ApproveEmailRequest)
 	protectedMessages.GET("/email/sent-user-requests", messagesService.GetAllSentEmailRequests)

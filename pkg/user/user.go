@@ -23,6 +23,7 @@ func (s *UserService) GetMe(c *gin.Context) {
 	err := s.db.QueryRow(`SELECT id, name, email, rating FROM users WHERE ID = $1`, userID).Scan(&u.ID, &u.Name, &u.Email, &u.Rating)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
 		return
 	}
 
@@ -49,12 +50,14 @@ func (s *UserService) DeleteMe(c *gin.Context) {
 	_, err := s.db.Exec(`DELETE FROM users WHERE ID = $1`, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
 		return
 	}
 
 	_, err = s.db.Exec(`DELETE FROM events WHERE owner_id = $1`, userID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
 		return
 	}
 

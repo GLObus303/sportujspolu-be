@@ -70,6 +70,7 @@ func (s *UserService) Login(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
 		return
 	}
 
@@ -83,6 +84,7 @@ func (s *UserService) Login(c *gin.Context) {
 	if err != nil {
 		log.Println("(Login) loginCheck", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "email or password is incorrect."})
+
 		return
 	}
 
@@ -109,6 +111,7 @@ func (s *UserService) Register(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
 		return
 	}
 
@@ -123,6 +126,7 @@ func (s *UserService) Register(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
 		return
 	}
 
@@ -133,6 +137,7 @@ func (s *UserService) Register(c *gin.Context) {
 	_, err = s.db.Exec(query, u.ID, u.Name, u.Email, u.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+
 		return
 	}
 
