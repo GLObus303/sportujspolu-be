@@ -34,7 +34,12 @@ type EmailRequestApproveResponse struct {
 type EmailRequestResponse struct {
 	EmailRequest
 
+	RequesterName  *string `json:"requesterName,omitempty" example:"John Doe"`
+	RequesterEmail *string `json:"requesterEmail,omitempty" example:"email@test.com"`
+
 	EventOwnerName  *string `json:"eventOwnerName,omitempty" example:"Owner Name"`
 	EventOwnerEmail *string `json:"eventOwnerEmail,omitempty" example:"email@test.com"`
 	EventName       *string `json:"eventName,omitempty" example:"Sample Event"`
+	EventLocation   *string `json:"eventLocation,omitempty" example:"Central Park"`
+	EventLevel      *string `json:"eventLevel,omitempty" example:"Any"`
 }
