@@ -206,6 +206,7 @@ func getEmailRequests(c *gin.Context, s *MessageService, query string) error {
 			&emailRequest.EventName,
 			&emailRequest.EventLocation,
 			&emailRequest.EventLevel,
+			&emailRequest.EventSport,
 			&emailRequest.EventOwnerName,
 			&emailRequest.EventOwnerEmail,
 		)
@@ -253,6 +254,7 @@ func (s *MessageService) GetAllSentEmailRequests(c *gin.Context) {
           events.name AS event_name,
           events.location AS event_location,
           events.level AS event_level,
+          events.sport AS event_sport,
           event_owner.name AS event_owner_name,
              (CASE
             WHEN email_requests.approved = true
@@ -301,6 +303,7 @@ func (s *MessageService) GetAllReceivedOwnerEmailRequests(c *gin.Context) {
           events.name AS event_name,
           events.location AS event_location,
           events.level AS event_level,
+          events.sport AS event_sport,
           NULL AS event_owner_name,
           NULL AS event_owner_email
 

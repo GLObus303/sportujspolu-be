@@ -42,4 +42,5 @@ type EmailRequestResponse struct {
 	EventName       *string `json:"eventName,omitempty" example:"Sample Event"`
 	EventLocation   *string `json:"eventLocation,omitempty" example:"Central Park"`
 	EventLevel      *string `json:"eventLevel,omitempty" example:"Any"`
+	EventSport      *string `json:"eventSport,omitempty" example:"Basketball"`
 }
