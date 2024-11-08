@@ -201,8 +201,12 @@ func getEmailRequests(c *gin.Context, s *MessageService, query string) error {
 			&emailRequest.ApprovedAt,
 			&emailRequest.CreatedAt,
 			&emailRequest.UpdatedAt,
-			&emailRequest.EventOwnerName,
+			&emailRequest.RequesterName,
+			&emailRequest.RequesterEmail,
 			&emailRequest.EventName,
+			&emailRequest.EventLocation,
+			&emailRequest.EventLevel,
+			&emailRequest.EventOwnerName,
 			&emailRequest.EventOwnerEmail,
 		)
 		if err != nil {
@@ -244,18 +248,22 @@ func (s *MessageService) GetAllSentEmailRequests(c *gin.Context) {
           email_requests.approved_at,
           email_requests.created_at,
           email_requests.updated_at,
-          users.name AS event_owner_name,
+          NULL AS requester_name,
+          NULL AS requester_email,
           events.name AS event_name,
+          events.location AS event_location,
+          events.level AS event_level,
+          event_owner.name AS event_owner_name,
              (CASE
             WHEN email_requests.approved = true
-            THEN users.email
+            THEN event_owner.email
             ELSE NULL
           END) AS event_owner_email
 
         FROM email_requests
-        LEFT JOIN users ON users.id = email_requests.event_owner_id
+        LEFT JOIN users as event_owner ON event_owner.id = email_requests.event_owner_id
         LEFT JOIN events ON events.public_id = email_requests.event_id
-        WHERE email_requests.requester_id = $1
+        WHERE email_requests.requester_id = $1 AND events.public_id IS NOT NULL
 `
 
 	err := getEmailRequests(c, s, query)
@@ -284,14 +292,22 @@ func (s *MessageService) GetAllReceivedOwnerEmailRequests(c *gin.Context) {
           email_requests.approved_at,
           email_requests.created_at,
           email_requests.updated_at,
-          users.name AS event_owner_name,
+          requester.name AS requester_name,
+           (CASE
+            WHEN email_requests.approved = true
+            THEN requester.email
+            ELSE NULL
+          END) AS requester_email,
           events.name AS event_name,
+          events.location AS event_location,
+          events.level AS event_level,
+          NULL AS event_owner_name,
           NULL AS event_owner_email
 
         FROM email_requests
-        LEFT JOIN users ON users.id = email_requests.event_owner_id
+        LEFT JOIN users AS requester ON requester.id =  email_requests.requester_id
         LEFT JOIN events ON events.public_id = email_requests.event_id
-        WHERE email_requests.event_owner_id = $1
+        WHERE email_requests.event_owner_id = $1 AND events.public_id IS NOT NULL
 `
 
 	err := getEmailRequests(c, s, query)
