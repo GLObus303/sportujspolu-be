@@ -79,7 +79,7 @@ func (s *EventsService) GetAllEvents(c *gin.Context) {
 	}
 
 	offset := (page - 1) * limit
-	res, err := s.db.Query("SELECT "+columns+" FROM events LIMIT $1 OFFSET $2", limit, offset)
+	res, err := s.db.Query("SELECT "+columns+" FROM events ORDER BY created_at DESC LIMIT $1 OFFSET $2", limit, offset)
 	if err != nil {
 		log.Println("(GetAllEvents) db.Query", err)
 	}
