@@ -14,10 +14,31 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
-func loadPrivateKeyFromEnv() (*rsa.PrivateKey, error) {
-	privateKeyPEM := os.Getenv("PRIVATE_KEY")
+func readPrivateKeyPEM() ([]byte, error) {
+	data, err := os.ReadFile("/private.key")
+	if err != nil {
+		return nil, fmt.Errorf("read private key (set PRIVATE_KEY or PRIVATE_KEY_FILE / mount): %w", err)
+	}
 
-	block, _ := pem.Decode([]byte(privateKeyPEM))
+	return data, nil
+}
+
+func readPublicKeyPEM() ([]byte, error) {
+	data, err := os.ReadFile("/public.key")
+	if err != nil {
+		return nil, fmt.Errorf("read public key (set PUBLIC_KEY or PUBLIC_KEY_FILE / mount): %w", err)
+	}
+
+	return data, nil
+}
+
+func loadPrivateKeyFromEnv() (*rsa.PrivateKey, error) {
+	privateKeyPEM, err := readPrivateKeyPEM()
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(privateKeyPEM)
 	if block == nil || block.Type != "RSA PRIVATE KEY" {
 		return nil, fmt.Errorf("failed to decode PEM block containing private key")
 	}
@@ -26,9 +47,12 @@ func loadPrivateKeyFromEnv() (*rsa.PrivateKey, error) {
 }
 
 func loadPublicKeyFromEnv() (*rsa.PublicKey, error) {
-	publicKeyPEM := os.Getenv("PUBLIC_KEY")
+	publicKeyPEM, err := readPublicKeyPEM()
+	if err != nil {
+		return nil, err
+	}
 
-	block, _ := pem.Decode([]byte(publicKeyPEM))
+	block, _ := pem.Decode(publicKeyPEM)
 	if block == nil || block.Type != "PUBLIC KEY" {
 		return nil, fmt.Errorf("failed to decode PEM block containing public key")
 	}
@@ -47,7 +71,7 @@ func loadPublicKeyFromEnv() (*rsa.PublicKey, error) {
 }
 
 func GenerateToken(userID string) (string, error) {
-	token_lifespan, err := strconv.Atoi(os.Getenv("TOKEN_HOUR_LIFESPAN"))
+	tokenLifespan, err := strconv.Atoi(os.Getenv("TOKEN_HOUR_LIFESPAN"))
 
 	if err != nil {
 		return "", err
@@ -55,7 +79,7 @@ func GenerateToken(userID string) (string, error) {
 
 	claims := jwt.MapClaims{}
 	claims["sub"] = userID
-	claims["exp"] = time.Now().Add(time.Hour * time.Duration(token_lifespan)).Unix()
+	claims["exp"] = time.Now().Add(time.Hour * time.Duration(tokenLifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 
 	privateKey, err := loadPrivateKeyFromEnv()
