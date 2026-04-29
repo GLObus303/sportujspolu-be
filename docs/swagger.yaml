@@ -91,6 +91,12 @@ definitions:
       eventId:
         example: pwnrxtbi9z0v
         type: string
+      eventLevel:
+        example: Any
+        type: string
+      eventLocation:
+        example: Central Park
+        type: string
       eventName:
         example: Sample Event
         type: string
@@ -103,11 +109,20 @@ definitions:
       eventOwnerName:
         example: Owner Name
         type: string
+      eventSport:
+        example: Basketball
+        type: string
       id:
         example: 1
         type: integer
+      requesterEmail:
+        example: email@test.com
+        type: string
       requesterId:
         example: pwnrxtbi9z0v
+        type: string
+      requesterName:
+        example: John Doe
         type: string
       text:
         example: I would like to join your event.
@@ -132,6 +147,9 @@ definitions:
       description:
         example: Example Description
         type: string
+      emailVisibleToAttendees:
+        example: false
+        type: boolean
       id:
         example: pwnrxtbi9z0v
         type: string
@@ -162,6 +180,9 @@ definitions:
       description:
         example: Example Description
         type: string
+      emailVisibleToAttendees:
+        example: false
+        type: boolean
       level:
         example: Any
         type: string
@@ -189,6 +210,9 @@ definitions:
       description:
         example: Example Description
         type: string
+      emailVisibleToAttendees:
+        example: false
+        type: boolean
       id:
         example: pwnrxtbi9z0v
         type: string
