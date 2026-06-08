@@ -13,10 +13,10 @@ import (
 	"github.com/globus303/sportujspolu/utils"
 )
 
-const columns = "name, sport, date, location, price, description, level, public_id, created_at, owner_id"
+const columns = "name, sport, date, location, price, description, level, public_id, created_at, owner_id, email_visible_to_attendees"
 
 func getColumnForEvent(event *models.EventWithOwner) []interface{} {
-	return []interface{}{&event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID, &event.Created_At, &event.Owner_ID}
+	return []interface{}{&event.Name, &event.Sport, &event.Date, &event.Location, &event.Price, &event.Description, &event.Level, &event.Public_ID, &event.Created_At, &event.Owner_ID, &event.Email_Visible_To_Attendees}
 }
 
 type EventsService struct {
@@ -44,6 +44,13 @@ func (s *EventsService) includeOwner(event *models.EventWithOwner, c *gin.Contex
 
 	if err != nil {
 		return err
+	}
+
+	_, tokenErr := utils.TokenValid(c)
+	isLoggedIn := tokenErr == nil
+
+	if !(isLoggedIn && event.Email_Visible_To_Attendees) {
+		owner.Email = ""
 	}
 
 	event.Owner = &owner
@@ -170,18 +177,18 @@ func (s *EventsService) CreateEvent(c *gin.Context) {
 	newEvent.Public_ID = utils.GenerateUUID()
 	newEvent.Created_At = time.Now()
 
-	query := "INSERT INTO events (name, sport, date, location, description, level, public_id, created_at, owner_id"
+	query := "INSERT INTO events (name, sport, date, location, description, level, public_id, created_at, owner_id, email_visible_to_attendees"
 
-	values := []interface{}{newEvent.Name, newEvent.Sport, newEvent.Date, newEvent.Location, newEvent.Description, newEvent.Level, newEvent.Public_ID, newEvent.Created_At, newEvent.Owner_ID}
+	values := []interface{}{newEvent.Name, newEvent.Sport, newEvent.Date, newEvent.Location, newEvent.Description, newEvent.Level, newEvent.Public_ID, newEvent.Created_At, newEvent.Owner_ID, newEvent.Email_Visible_To_Attendees}
 
 	if newEvent.Price != 0 {
 		query += ", price"
 		values = append(values, newEvent.Price)
 	}
 
-	query += ") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9"
+	query += ") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10"
 	if newEvent.Price != 0 {
-		query += ",$10"
+		query += ",$11"
 	}
 	query += ")"
 
@@ -246,10 +253,10 @@ func (s *EventsService) UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	query := "UPDATE events SET name = $1, sport = $2, date = $3, location = $4, price = $5, description = $6, level = $7"
-	values := []interface{}{updates.Name, updates.Sport, updates.Date, updates.Location, updates.Price, updates.Description, updates.Level}
+	query := "UPDATE events SET name = $1, sport = $2, date = $3, location = $4, price = $5, description = $6, level = $7, email_visible_to_attendees = $8"
+	values := []interface{}{updates.Name, updates.Sport, updates.Date, updates.Location, updates.Price, updates.Description, updates.Level, updates.Email_Visible_To_Attendees}
 
-	query += " WHERE public_id = $8"
+	query += " WHERE public_id = $9"
 	values = append(values, eventId)
 
 	_, err = s.db.Exec(query, values...)
